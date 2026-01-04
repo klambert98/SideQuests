@@ -1,0 +1,147 @@
+import { AppDataSource } from '../config/database';
+import { Entry } from '../entities/Entry';
+import { MoreThan, LessThan, Between } from 'typeorm';
+
+export class EntryService {
+  private entryRepository = AppDataSource.getRepository(Entry);
+
+  async createEntry(data: Partial<Entry>, userId: string) {
+    const entry = new Entry();
+    entry.title = data.title!;
+    entry.content = data.content!;
+    entry.slug = data.title!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    entry.entryDate = data.entryDate || new Date();
+    entry.status = data.status || 'draft';
+    entry.summary = data.summary || '';
+    entry.tags = data.tags || [];
+    entry.authorId = userId;
+
+    return await this.entryRepository.save(entry);
+  }
+
+  async getEntries(page: number = 1, limit: number = 10, status: string = 'published') {
+    const skip = (page - 1) * limit;
+
+    const [entries, total] = await this.entryRepository.findAndCount({
+      where: { status: status as any },
+      order: { entryDate: 'DESC' },
+      skip,
+      take: limit,
+      relations: ['media', 'embeds'],
+    });
+
+    return {
+      data: entries,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async getEntriesByMonth(year: number, month: number) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+
+    return await this.entryRepository.find({
+      where: {
+        entryDate: Between(startDate, endDate),
+        status: 'published',
+      },
+      order: { entryDate: 'DESC' },
+      relations: ['media', 'embeds'],
+    });
+  }
+
+  async getTimeline() {
+    // Get entries grouped by year and month
+    const entries = await this.entryRepository.find({
+      where: { status: 'published' },
+      order: { entryDate: 'DESC' },
+      relations: ['media', 'embeds'],
+    });
+
+    const timeline: Record<string, Record<string, any[]>> = {};
+
+    entries.forEach((entry) => {
+      const year = entry.entryDate.getFullYear().toString();
+      const month = (entry.entryDate.getMonth() + 1).toString().padStart(2, '0');
+
+      if (!timeline[year]) {
+        timeline[year] = {};
+      }
+
+      if (!timeline[year][month]) {
+        timeline[year][month] = [];
+      }
+
+      timeline[year][month].push(entry);
+    });
+
+    return timeline;
+  }
+
+  async getEntry(id: string) {
+    const entry = await this.entryRepository.findOne({
+      where: { id },
+      relations: ['media', 'embeds'],
+    });
+
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    // Increment view count
+    entry.views += 1;
+    await this.entryRepository.save(entry);
+
+    return entry;
+  }
+
+  async updateEntry(id: string, data: Partial<Entry>, userId: string) {
+    const entry = await this.entryRepository.findOne({ where: { id } });
+
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    if (entry.authorId !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    Object.assign(entry, data);
+    if (data.title) {
+      entry.slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+
+    return await this.entryRepository.save(entry);
+  }
+
+  async deleteEntry(id: string, userId: string) {
+    const entry = await this.entryRepository.findOne({ where: { id } });
+
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    if (entry.authorId !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    await this.entryRepository.remove(entry);
+  }
+
+  async searchEntries(query: string) {
+    return await this.entryRepository
+      .createQueryBuilder('entry')
+      .where('entry.title ILIKE :query', { query: `%${query}%` })
+      .orWhere('entry.content ILIKE :query', { query: `%${query}%` })
+      .andWhere('entry.status = :status', { status: 'published' })
+      .orderBy('entry.entryDate', 'DESC')
+      .leftJoinAndSelect('entry.media', 'media')
+      .leftJoinAndSelect('entry.embeds', 'embeds')
+      .getMany();
+  }
+}
+
+export const entryService = new EntryService();
