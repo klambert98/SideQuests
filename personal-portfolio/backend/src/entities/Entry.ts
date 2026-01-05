@@ -12,6 +12,8 @@ import {
 import { User } from './User';
 import { Media } from './Media';
 import { Embed } from './Embed';
+import { Like } from './Like';
+import { Comment } from './Comment';
 
 @Entity('entries')
 @Index(['status', 'entryDate'])
@@ -49,6 +51,12 @@ export class Entry {
   @Column({ default: 0 })
   views: number;
 
+  @Column({ default: 0 })
+  likes: number;
+
+  @Column({ default: 0 })
+  comments_count: number;
+
   @ManyToOne(() => User)
   @JoinColumn()
   author: User;
@@ -62,6 +70,12 @@ export class Entry {
 
   @OneToMany(() => Embed, (embed) => embed.entry, { eager: true, onDelete: 'CASCADE' })
   embeds: Embed[];
+
+  @OneToMany(() => Like, (like) => like.entry, { onDelete: 'CASCADE' })
+  userLikes: Like[];
+
+  @OneToMany(() => Comment, (comment) => comment.entry, { onDelete: 'CASCADE' })
+  comments: Comment[];
 
   @CreateDateColumn()
   createdAt: Date;

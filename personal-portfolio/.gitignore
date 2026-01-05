@@ -38,6 +38,13 @@ frontend/.next/
 .env.production
 *.pid
 
+# SQL files with credentials (never commit these)
+*.sql
+!*.schema.sql
+create-user.sql
+update-user.sql
+init-schema.sql
+
 # Testing
 coverage/
 .nyc_output/

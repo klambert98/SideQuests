@@ -91,7 +91,7 @@ export class EntryService {
   async getEntry(id: string) {
     const entry = await this.entryRepository.findOne({
       where: { id },
-      relations: ['media', 'embeds'],
+      relations: ['media', 'embeds', 'userLikes'],
     });
 
     if (!entry) {

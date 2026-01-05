@@ -25,7 +25,9 @@ export function PageLayout({
       className={`min-h-screen bg-gradient-to-b ${gradientFrom} via-white ${gradientTo} dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 ${className}`}
     >
       {showNavigation && <Navigation />}
-      {children}
+      <div className={showNavigation ? 'pt-20' : ''}>
+        {children}
+      </div>
       {showFooter && <Footer />}
     </div>
   );

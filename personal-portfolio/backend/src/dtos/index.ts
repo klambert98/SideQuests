@@ -1,4 +1,4 @@
-import { IsString, MinLength, MaxLength, IsOptional, IsArray, IsEnum, IsISO8601, IsEmail } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsOptional, IsArray, IsEnum, IsEmail } from 'class-validator';
 
 export class CreateEntryDto {
   @IsString()
@@ -17,7 +17,7 @@ export class CreateEntryDto {
   summary?: string;
 
   @IsOptional()
-  @IsISO8601({}, { message: 'Entry date must be a valid ISO 8601 date' })
+  @IsString({ message: 'Entry date must be a string' })
   entryDate?: string;
 
   @IsOptional()
@@ -49,7 +49,7 @@ export class UpdateEntryDto {
   summary?: string;
 
   @IsOptional()
-  @IsISO8601({}, { message: 'Entry date must be a valid ISO 8601 date' })
+  @IsString({ message: 'Entry date must be a string' })
   entryDate?: string;
 
   @IsOptional()

@@ -8,8 +8,30 @@ export type Entry = {
   summary?: string;
   tags: string[];
   views: number;
+  likes: number;
+  comments_count: number;
   media: Media[];
   embeds: Embed[];
+  userLikes?: Like[];
+  comments?: Comment[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
+};
+
+export type Like = {
+  id: string;
+  entryId: string;
+  userId: string;
+  createdAt: Date | string;
+};
+
+export type Comment = {
+  id: string;
+  entryId: string;
+  userId: string;
+  text: string;
+  name?: string | null;
+  author: User;
   createdAt: Date | string;
   updatedAt: Date | string;
 };
