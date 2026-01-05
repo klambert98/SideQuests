@@ -1,4 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+// Decode JWT without verification (client-side check only)
+function decodeJWT(token: string): { exp?: number; userId?: string } | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Failed to decode JWT:', error);
+    return null;
+  }
+}
+
+function isTokenExpired(token: string): boolean {
+  const decoded = decodeJWT(token);
+  if (!decoded || !decoded.exp) return true;
+
+  // Check if token expires in next 5 minutes (for safety margin)
+  const expirationTime = decoded.exp * 1000;
+  const now = Date.now();
+  return now >= expirationTime - 5 * 60 * 1000;
+}
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(initialValue);
@@ -39,9 +68,19 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 export function useAuth() {
   const [token, setToken] = useLocalStorage<string | null>('auth_token', null);
   const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (token) {
+      // Check if token is expired before verifying
+      if (isTokenExpired(token)) {
+        console.warn('Token expired, logging out');
+        setToken(null);
+        setUser(null);
+        router.push('/login');
+        return;
+      }
+
       // Verify token is still valid by fetching user
       const verifyAuth = async () => {
         try {
@@ -54,6 +93,9 @@ export function useAuth() {
           } else {
             setToken(null);
             setUser(null);
+            if (response.status === 401 || response.status === 403) {
+              router.push('/login');
+            }
           }
         } catch (error) {
           console.error('Auth verification failed:', error);
@@ -61,8 +103,29 @@ export function useAuth() {
       };
 
       verifyAuth();
+
+      // Set up automatic logout when token expires
+      const decoded = decodeJWT(token);
+      if (decoded?.exp) {
+        const expirationTime = decoded.exp * 1000;
+        const now = Date.now();
+        const timeUntilExpiration = expirationTime - now;
+
+        if (timeUntilExpiration > 0) {
+          const logoutTimer = setTimeout(() => {
+            console.warn('Token expired, logging out');
+            setToken(null);
+            setUser(null);
+            router.push('/login');
+          }, timeUntilExpiration);
+
+          return () => clearTimeout(logoutTimer);
+        }
+      }
+    } else {
+      setUser(null);
     }
-  }, [token, setToken]);
+  }, [token, setToken, router]);
 
   return { token, user, isAuthenticated: !!token };
 }

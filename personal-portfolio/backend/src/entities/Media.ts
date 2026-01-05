@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Entry } from './Entry';
 
@@ -15,6 +16,7 @@ export enum MediaType {
 }
 
 @Entity('media')
+@Index(['entryId', 'type'])
 export class Media {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -29,6 +31,7 @@ export class Media {
   mimetype: string;
 
   @Column({ enum: MediaType })
+  @Index()
   type: MediaType;
 
   @Column()

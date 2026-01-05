@@ -3,6 +3,15 @@ import { Media, MediaType } from '../entities/Media';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
+import { randomBytes } from 'crypto';
+
+// Sanitize filename to prevent directory traversal
+const sanitizeFilename = (filename: string): string => {
+  return filename
+    .replace(/[^a-z0-9.-]/gi, '_')
+    .replace(/^\.+/, '')
+    .slice(0, 255);
+};
 
 export class MediaService {
   private mediaRepository = AppDataSource.getRepository(Media);
@@ -11,7 +20,10 @@ export class MediaService {
     const uploadDir = path.join(__dirname, '../../uploads');
     await fs.mkdir(uploadDir, { recursive: true });
 
-    const filename = `${Date.now()}-${file.originalname}`;
+    // Generate secure filename with random bytes
+    const sanitized = sanitizeFilename(file.originalname);
+    const random = randomBytes(8).toString('hex');
+    const filename = `${Date.now()}-${random}-${sanitized}`;
     const filepath = path.join(uploadDir, filename);
     const url = `/uploads/${filename}`;
 
@@ -28,7 +40,8 @@ export class MediaService {
 
       // Generate thumbnail
       try {
-        const thumbnailFilename = `thumb-${filename}`;
+        const thumbnailRandom = randomBytes(8).toString('hex');
+        const thumbnailFilename = `thumb-${Date.now()}-${thumbnailRandom}-${sanitized}`;
         const thumbnailPath = path.join(uploadDir, thumbnailFilename);
         await sharp(filepath).resize(200, 200, { fit: 'cover' }).toFile(thumbnailPath);
         thumbnailUrl = `/uploads/${thumbnailFilename}`;
@@ -46,7 +59,7 @@ export class MediaService {
 
     const media = new Media();
     media.filename = filename;
-    media.originalName = file.originalname;
+    media.originalName = sanitized;
     media.mimetype = file.mimetype;
     media.type = type;
     media.size = file.size;

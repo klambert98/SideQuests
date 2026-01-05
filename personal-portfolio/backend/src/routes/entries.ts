@@ -1,6 +1,8 @@
 import { Router, Response } from 'express';
 import { AuthRequest, authenticate } from '../middleware/authenticate';
 import { entryService } from '../services/EntryService';
+import { CreateEntryDto, UpdateEntryDto } from '../dtos';
+import { validateDto } from '../utils/validation';
 
 export const entryRoutes = Router();
 
@@ -64,20 +66,16 @@ entryRoutes.get('/:id', async (req: any, res: Response) => {
 // Create entry
 entryRoutes.post('/', authenticate, async (req: any, res: Response) => {
   try {
-    const { title, content, entryDate, status, summary, tags } = req.body;
-
-    if (!title || !content) {
-      return res.status(400).json({ error: 'Title and content required' });
-    }
+    const validatedData = await validateDto(CreateEntryDto, req.body);
 
     const entry = await entryService.createEntry(
       {
-        title,
-        content,
-        entryDate: entryDate ? new Date(entryDate) : new Date(),
-        status,
-        summary,
-        tags: tags || [],
+        title: validatedData.title,
+        content: validatedData.content,
+        entryDate: validatedData.entryDate ? new Date(validatedData.entryDate) : new Date(),
+        status: validatedData.status as 'draft' | 'published' | 'archived' | undefined,
+        summary: validatedData.summary,
+        tags: validatedData.tags || [],
       },
       req.userId!
     );
@@ -92,16 +90,16 @@ entryRoutes.post('/', authenticate, async (req: any, res: Response) => {
 entryRoutes.put('/:id', authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, content, status, summary, tags } = req.body;
+    const validatedData = await validateDto(UpdateEntryDto, req.body);
 
     const entry = await entryService.updateEntry(
       id,
       {
-        title,
-        content,
-        status,
-        summary,
-        tags,
+        title: validatedData.title,
+        content: validatedData.content,
+        status: validatedData.status as 'draft' | 'published' | 'archived' | undefined,
+        summary: validatedData.summary,
+        tags: validatedData.tags,
       },
       req.userId!
     );

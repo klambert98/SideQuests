@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Entry } from '@/types';
+import { Button } from '@/components/Button';
+import { FormField } from '@/components/FormField';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -12,6 +14,7 @@ export default function DashboardPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -48,6 +51,7 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!token) return;
 
+    setIsSubmitting(true);
     try {
       const newEntry = await api.entries.create(token, {
         ...formData,
@@ -66,6 +70,8 @@ export default function DashboardPage() {
       setShowForm(false);
     } catch (error) {
       console.error('Failed to create entry:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -89,12 +95,14 @@ export default function DashboardPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Create Entry Button */}
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="mb-6 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold"
-        >
-          {showForm ? 'Cancel' : '+ New Entry'}
-        </button>
+        <div className="mb-6">
+          <Button
+            onClick={() => setShowForm(!showForm)}
+            variant="primary"
+          >
+            {showForm ? 'Cancel' : '+ New Entry'}
+          </Button>
+        </div>
 
         {/* Create Entry Form */}
         {showForm && (
@@ -103,106 +111,70 @@ export default function DashboardPage() {
               Create New Entry
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="Entry title"
-                />
-              </div>
+              <FormField
+                label="Title"
+                name="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.currentTarget.value })}
+                placeholder="Entry title"
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Content
-                </label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) =>
-                    setFormData({ ...formData, content: e.target.value })
-                  }
-                  required
-                  rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="Write your entry content..."
-                />
-              </div>
+              <FormField
+                label="Content"
+                name="content"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.currentTarget.value })}
+                placeholder="Write your entry content..."
+                rows={6}
+                required
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.entryDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, entryDate: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
+                <FormField
+                  label="Date"
+                  name="entryDate"
+                  type="date"
+                  value={formData.entryDate}
+                  onChange={(e) => setFormData({ ...formData, entryDate: e.currentTarget.value })}
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Summary
-                </label>
-                <input
-                  type="text"
-                  value={formData.summary}
-                  onChange={(e) =>
-                    setFormData({ ...formData, summary: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="Brief summary of the entry"
+                <FormField
+                  label="Status"
+                  name="status"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.currentTarget.value })}
+                  options={[
+                    { value: 'draft', label: 'Draft' },
+                    { value: 'published', label: 'Published' },
+                  ]}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Tags (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={formData.tags}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tags: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="travel, photography, life"
-                />
-              </div>
-h
-              <button
+              <FormField
+                label="Summary"
+                name="summary"
+                value={formData.summary}
+                onChange={(e) => setFormData({ ...formData, summary: e.currentTarget.value })}
+                placeholder="Brief summary of the entry"
+              />
+
+              <FormField
+                label="Tags (comma-separated)"
+                name="tags"
+                value={formData.tags}
+                onChange={(e) => setFormData({ ...formData, tags: e.currentTarget.value })}
+                placeholder="travel, photography, life"
+              />
+
+              <Button
                 type="submit"
-                className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+                variant="primary"
+                fullWidth
+                loading={isSubmitting}
               >
                 Create Entry
-              </button>
+              </Button>
             </form>
           </div>
         )}
@@ -250,12 +222,12 @@ h
                   </p>
                 )}
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900 rounded transition">
+                  <Button size="sm" variant="secondary">
                     Edit
-                  </button>
-                  <button className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded transition">
+                  </Button>
+                  <Button size="sm" variant="danger">
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))

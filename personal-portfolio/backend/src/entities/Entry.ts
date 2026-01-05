@@ -7,29 +7,37 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from './User';
 import { Media } from './Media';
 import { Embed } from './Embed';
 
 @Entity('entries')
+@Index(['status', 'entryDate'])
+@Index(['authorId', 'status'])
+@Index(['entryDate'])
 export class Entry {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
+  @Index()
   title: string;
 
   @Column({ type: 'text' })
   content: string;
 
   @Column()
+  @Index({ unique: true })
   slug: string;
 
   @Column({ default: 'draft', enum: ['draft', 'published', 'archived'] })
+  @Index()
   status: 'draft' | 'published' | 'archived';
 
   @Column({ type: 'date' })
+  @Index()
   entryDate: Date;
 
   @Column({ nullable: true, type: 'varchar' })
@@ -46,6 +54,7 @@ export class Entry {
   author: User;
 
   @Column()
+  @Index()
   authorId: string;
 
   @OneToMany(() => Media, (media) => media.entry, { eager: true, onDelete: 'CASCADE' })

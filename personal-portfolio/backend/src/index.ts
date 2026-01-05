@@ -8,18 +8,40 @@ import { authRoutes } from './routes/auth';
 import { entryRoutes } from './routes/entries';
 import { mediaRoutes } from './routes/media';
 import { embedRoutes } from './routes/embeds';
+import { logger } from './services/LoggerService';
 
 const app: Express = express();
 const PORT = process.env.API_PORT || 3001;
 
-// Middleware
+// Validate required environment variables
+const requiredEnvVars = ['JWT_SECRET'];
+requiredEnvVars.forEach((varName) => {
+  if (!process.env[varName] && process.env.NODE_ENV === 'production') {
+    throw new Error(`Required environment variable ${varName} is not set`);
+  }
+});
+
+// CORS Configuration
+const corsOrigin = process.env.CORS_ORIGIN;
+if (!corsOrigin && process.env.NODE_ENV === 'production') {
+  throw new Error('CORS_ORIGIN environment variable is required in production');
+}
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: corsOrigin || 'http://localhost:3000',
   credentials: true,
 }));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 
 // Serve uploaded files as static
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -47,14 +69,14 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await AppDataSource.initialize();
-    console.log('✅ Database connected');
+    logger.info('Database connected');
 
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log(`📝 API: http://localhost:${PORT}/api`);
+      logger.info(`Server running on http://localhost:${PORT}`);
+      logger.info(`API available at http://localhost:${PORT}/api`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    logger.error('Failed to start server', error);
     process.exit(1);
   }
 };

@@ -1,19 +1,20 @@
 import { AppDataSource } from '../config/database';
 import { Entry } from '../entities/Entry';
 import { MoreThan, LessThan, Between } from 'typeorm';
+import { sanitizeHTML, sanitizeArray, stripHTML } from '../utils/sanitize';
 
 export class EntryService {
   private entryRepository = AppDataSource.getRepository(Entry);
 
   async createEntry(data: Partial<Entry>, userId: string) {
     const entry = new Entry();
-    entry.title = data.title!;
-    entry.content = data.content!;
+    entry.title = stripHTML(data.title!); // Strip HTML from title
+    entry.content = sanitizeHTML(data.content!); // Sanitize content HTML
     entry.slug = data.title!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     entry.entryDate = data.entryDate || new Date();
     entry.status = data.status || 'draft';
-    entry.summary = data.summary || '';
-    entry.tags = data.tags || [];
+    entry.summary = data.summary ? stripHTML(data.summary) : ''; // Strip HTML from summary
+    entry.tags = data.tags ? sanitizeArray(data.tags) : []; // Sanitize tags array
     entry.authorId = userId;
 
     return await this.entryRepository.save(entry);
@@ -115,10 +116,24 @@ export class EntryService {
       throw new Error('Unauthorized');
     }
 
-    Object.assign(entry, data);
+    // Sanitize updated fields
     if (data.title) {
+      entry.title = stripHTML(data.title);
       entry.slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     }
+    if (data.content) {
+      entry.content = sanitizeHTML(data.content);
+    }
+    if (data.summary) {
+      entry.summary = stripHTML(data.summary);
+    }
+    if (data.tags) {
+      entry.tags = sanitizeArray(data.tags);
+    }
+    
+    // Update other safe fields
+    if (data.status) entry.status = data.status;
+    if (data.entryDate) entry.entryDate = data.entryDate;
 
     return await this.entryRepository.save(entry);
   }

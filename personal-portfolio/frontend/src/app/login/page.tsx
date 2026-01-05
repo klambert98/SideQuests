@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
+import { Button } from '@/components/Button';
+import { FormField } from '@/components/FormField';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,41 +51,34 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-              placeholder="your@email.com"
-            />
-          </div>
+          <FormField
+            label="Email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.currentTarget.value)}
+            placeholder="your@email.com"
+            required
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-              placeholder="Enter your password"
-            />
-          </div>
+          <FormField
+            label="Password"
+            name="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.currentTarget.value)}
+            placeholder="Enter your password"
+            required
+          />
 
-          <button
+          <Button
             type="submit"
-            disabled={isLoading}
-            className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold"
+            variant="primary"
+            fullWidth
+            loading={isLoading}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
+            Login
+          </Button>
         </form>
 
         <p className="mt-4 text-center text-gray-600 dark:text-gray-400 text-sm">

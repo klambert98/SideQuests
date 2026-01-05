@@ -3,6 +3,14 @@ import { User } from '../entities/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return secret;
+};
+
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
 
@@ -19,10 +27,11 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
+    const secret = getJwtSecret();
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET || 'secret',
-      { expiresIn: '30d' }
+      secret,
+      { expiresIn: '7d' } // Reduced from 30d for better security
     );
 
     return {
@@ -64,7 +73,10 @@ export class AuthService {
       throw new Error('User not found');
     }
 
-    Object.assign(user, data);
+    // Prevent updating password and email directly
+    const { password, email, ...safeData } = data;
+
+    Object.assign(user, safeData);
     await this.userRepository.save(user);
 
     return {

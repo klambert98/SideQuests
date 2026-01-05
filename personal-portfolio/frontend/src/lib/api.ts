@@ -1,79 +1,123 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+export class APIError extends Error {
+  constructor(
+    public statusCode: number,
+    public data: any,
+    message: string = 'API Error'
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
+
+async function apiFetch(url: string, options: RequestInit = {}): Promise<any> {
+  try {
+    const response = await fetch(url, options);
+
+    const contentType = response.headers.get('content-type');
+    let data = null;
+
+    if (contentType?.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+
+    if (!response.ok) {
+      const errorMessage = typeof data === 'object' ? data?.error || data?.message : data;
+      throw new APIError(
+        response.status,
+        data,
+        errorMessage || `Request failed with status ${response.status}`
+      );
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof APIError) throw error;
+    throw new APIError(
+      0,
+      null,
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    );
+  }
+}
+
 export const api = {
   // Auth endpoints
   auth: {
     login: (email: string, password: string) =>
-      fetch(`${API_URL}/auth/login`, {
+      apiFetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-      }).then(r => r.json()),
+      }),
 
     logout: (token: string) =>
-      fetch(`${API_URL}/auth/logout`, {
+      apiFetch(`${API_URL}/auth/logout`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json()),
+      }),
 
     getMe: (token: string) =>
-      fetch(`${API_URL}/auth/me`, {
+      apiFetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json()),
+      }),
 
     updateMe: (token: string, data: any) =>
-      fetch(`${API_URL}/auth/me`, {
+      apiFetch(`${API_URL}/auth/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }),
   },
 
   // Entry endpoints
   entries: {
     getTimeline: () =>
-      fetch(`${API_URL}/entries/timeline`).then(r => r.json()),
+      apiFetch(`${API_URL}/entries/timeline`),
 
     getByMonth: (year: number, month: number) =>
-      fetch(`${API_URL}/entries/month/${year}/${month}`).then(r => r.json()),
+      apiFetch(`${API_URL}/entries/month/${year}/${month}`),
 
     getAll: (page: number = 1, limit: number = 10) =>
-      fetch(`${API_URL}/entries?page=${page}&limit=${limit}`).then(r => r.json()),
+      apiFetch(`${API_URL}/entries?page=${page}&limit=${limit}`),
 
     getOne: (id: string) =>
-      fetch(`${API_URL}/entries/${id}`).then(r => r.json()),
+      apiFetch(`${API_URL}/entries/${id}`),
 
     search: (query: string) =>
-      fetch(`${API_URL}/entries/search/${encodeURIComponent(query)}`).then(r => r.json()),
+      apiFetch(`${API_URL}/entries/search/${encodeURIComponent(query)}`),
 
     create: (token: string, data: any) =>
-      fetch(`${API_URL}/entries`, {
+      apiFetch(`${API_URL}/entries`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }),
 
     update: (token: string, id: string, data: any) =>
-      fetch(`${API_URL}/entries/${id}`, {
+      apiFetch(`${API_URL}/entries/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }),
 
     delete: (token: string, id: string) =>
-      fetch(`${API_URL}/entries/${id}`, {
+      apiFetch(`${API_URL}/entries/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json()),
+      }),
   },
 
   // Media endpoints
@@ -83,39 +127,45 @@ export const api = {
       formData.append('file', file);
       if (entryId) formData.append('entryId', entryId);
 
-      return fetch(`${API_URL}/media/upload`, {
+      return apiFetch(`${API_URL}/media/upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
-      }).then(r => r.json());
+      });
     },
 
     getByEntry: (entryId: string) =>
-      fetch(`${API_URL}/media/entry/${entryId}`).then(r => r.json()),
+      apiFetch(`${API_URL}/media/entry/${entryId}`),
 
     delete: (token: string, id: string) =>
-      fetch(`${API_URL}/media/${id}`, {
+      apiFetch(`${API_URL}/media/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json()),
+      }),
   },
 
   // Embed endpoints
   embeds: {
     create: (token: string, data: any) =>
-      fetch(`${API_URL}/embeds`, {
+      apiFetch(`${API_URL}/embeds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }),
 
     delete: (token: string, id: string) =>
-      fetch(`${API_URL}/embeds/${id}`, {
+      apiFetch(`${API_URL}/embeds/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json()),
+      }),
   },
+
+  // Health check
+  health: () =>
+    apiFetch(`${API_URL.replace('/api', '')}/health`).catch(() => ({ 
+      status: 'offline' 
+    })),
 };
