@@ -8,6 +8,8 @@ RUN npm ci
 
 # Build application
 FROM base as builder
+ARG NEXT_PUBLIC_API_URL=https://side-quest-api.fly.dev/api
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 COPY . .
 RUN npm run build
 

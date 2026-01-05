@@ -10,6 +10,15 @@ import { Button } from '@/components/Button';
 import { EmbedPreview } from '@/components/EmbedPreview';
 import Link from 'next/link';
 
+type Comment = {
+  id: string;
+  text: string;
+  name?: string;
+  userId: string;
+  createdAt: string;
+  moderationStatus?: 'pending' | 'approved' | 'rejected' | 'flagged';
+};
+
 export default function EntryDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -17,7 +26,7 @@ export default function EntryDetailPage() {
   const [entry, setEntry] = useState<Entry | null>(null);
   const [likes, setLikes] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [newCommentName, setNewCommentName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +124,7 @@ export default function EntryDetailPage() {
 
     try {
       const formData = new FormData(e.target as HTMLFormElement);
-      const updatedEntry = await api.entries.update(token, id, {
+      await api.entries.update(token, id, {
         title: formData.get('title') as string,
         content: formData.get('content') as string,
         summary: formData.get('summary') as string,
@@ -646,29 +655,56 @@ export default function EntryDetailPage() {
               {comments.length === 0 ? (
                 <p className="text-gray-600 dark:text-gray-400">No comments yet. Be the first to comment!</p>
               ) : (
-                comments.map((comment) => (
-                  <div key={comment.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-grow">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {comment.name || 'Anonymous'}
+                comments.map((comment) => {
+                  const isPending = comment.moderationStatus === 'pending';
+                  const isOwnComment = user && user.id === comment.userId;
+                  
+                  return (
+                    <div key={comment.id}>
+                      {/* Show pending notice for own comments */}
+                      {isPending && isOwnComment && (
+                        <div className="mb-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            ⏳ Your comment is awaiting moderation and will be visible to others once approved by an admin.
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-gray-800 dark:text-gray-200">{comment.text}</p>
-                      </div>
-                      {user && (user.id === comment.userId || user.role === 'admin') && (
-                        <button
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm"
-                        >
-                          Delete
-                        </button>
                       )}
+                      
+                      <div className={`p-4 rounded-lg ${
+                        isPending 
+                          ? 'bg-yellow-50/50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/50' 
+                          : 'bg-gray-50 dark:bg-gray-700'
+                      }`}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-grow">
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-gray-900 dark:text-white">
+                                {comment.name || 'Anonymous'}
+                              </div>
+                              {isPending && user?.role === 'admin' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                  Pending
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              {new Date(comment.createdAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-gray-800 dark:text-gray-200">{comment.text}</p>
+                          </div>
+                          {user && (user.id === comment.userId || user.role === 'admin') && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

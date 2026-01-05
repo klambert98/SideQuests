@@ -4,6 +4,7 @@ import { entryService } from '../services/EntryService';
 import { interactionService } from '../services/InteractionService';
 import { CreateEntryDto, UpdateEntryDto } from '../dtos';
 import { validateDto } from '../utils/validation';
+import { likeLimiter, commentLimiter, interactionLimiter } from '../middleware/rateLimiter';
 
 export const entryRoutes = Router();
 
@@ -58,7 +59,7 @@ entryRoutes.get('/search/:query', async (req: any, res: Response) => {
 // ============================================
 
 // Like entry
-entryRoutes.post('/:id/like', authenticate, async (req: any, res: Response) => {
+entryRoutes.post('/:id/like', likeLimiter, authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     await interactionService.addLike(id, req.userId!);
@@ -69,7 +70,7 @@ entryRoutes.post('/:id/like', authenticate, async (req: any, res: Response) => {
 });
 
 // Unlike entry
-entryRoutes.delete('/:id/like', authenticate, async (req: any, res: Response) => {
+entryRoutes.delete('/:id/like', likeLimiter, authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     await interactionService.removeLike(id, req.userId!);
@@ -91,7 +92,7 @@ entryRoutes.get('/:id/likes', async (req: any, res: Response) => {
 });
 
 // Add comment to entry
-entryRoutes.post('/:id/comments', authenticate, async (req: any, res: Response) => {
+entryRoutes.post('/:id/comments', commentLimiter, authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     const { text, name } = req.body;
@@ -111,7 +112,8 @@ entryRoutes.post('/:id/comments', authenticate, async (req: any, res: Response) 
 entryRoutes.get('/:id/comments', async (req: any, res: Response) => {
   try {
     const { id } = req.params;
-    const comments = await interactionService.getComments(id);
+    const userId = req.headers.authorization ? req.userId : undefined;
+    const comments = await interactionService.getComments(id, userId);
     res.json(comments);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -119,11 +121,60 @@ entryRoutes.get('/:id/comments', async (req: any, res: Response) => {
 });
 
 // Delete comment
-entryRoutes.delete('/:id/comments/:commentId', authenticate, async (req: any, res: Response) => {
+entryRoutes.delete('/:id/comments/:commentId', interactionLimiter, authenticate, async (req: any, res: Response) => {
   try {
     const { id, commentId } = req.params;
     await interactionService.deleteComment(commentId, id, req.userId!);
     res.json({ message: 'Comment deleted' });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Flag comment (for users to report inappropriate content)
+entryRoutes.post('/:id/comments/:commentId/flag', authenticate, async (req: any, res: Response) => {
+  try {
+    const { commentId } = req.params;
+    const { reason } = req.body;
+    const comment = await interactionService.flagComment(commentId, req.userId!, reason);
+    res.json({ message: 'Comment flagged for moderation', comment });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Moderate comment (admin only)
+entryRoutes.post('/:id/comments/:commentId/moderate', authenticate, async (req: any, res: Response) => {
+  try {
+    const { commentId } = req.params;
+    const { status, reason } = req.body;
+
+    if (!['approved', 'rejected', 'flagged'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid moderation status' });
+    }
+
+    const comment = await interactionService.moderateComment(commentId, req.userId!, status, reason);
+    res.json({ message: 'Comment moderated', comment });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get pending comments (admin only)
+entryRoutes.get('/moderation/pending', authenticate, async (req: any, res: Response) => {
+  try {
+    const comments = await interactionService.getPendingComments(req.userId!);
+    res.json(comments);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get flagged comments (admin only)
+entryRoutes.get('/moderation/flagged', authenticate, async (req: any, res: Response) => {
+  try {
+    const comments = await interactionService.getFlaggedComments(req.userId!);
+    res.json(comments);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }

@@ -43,7 +43,7 @@ export function TimelineEntryCard({ entry }: TimelineEntryCardProps) {
               <Link href={`/entries/${entry.id}`}>
                 <OptimizedImage
                   src={getMediaUrl(firstMedia.url)}
-                  alt={firstMedia.fileName || 'Media'}
+                  alt={firstMedia.filename || 'Media'}
                   width={400}
                   height={250}
                   className="w-full h-auto cursor-pointer hover:opacity-90 transition"

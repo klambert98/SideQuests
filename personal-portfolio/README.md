@@ -174,17 +174,39 @@ personal-portfolio/
 
 - [x] Project scaffolding
 - [x] Basic authentication
-- [ ] Timeline UI component
-- [ ] Media upload system
-- [ ] Embed support (Instagram, YouTube, etc.)
-- [ ] Blog entry CRUD
-- [ ] Month-based organization
-- [ ] Image optimization
+- [x] Timeline UI component
+- [x] Media upload system
+- [x] Embed support (Instagram, YouTube, etc.)
+- [x] Blog entry CRUD
+- [x] Month-based organization
+- [x] Image optimization
+- [x] Comment system with moderation
+- [x] Email notifications
+- [x] Like functionality
 - [ ] Search functionality
 - [ ] Monthly archive view
-- [ ] Admin dashboard
-- [ ] Android app integration
 - [ ] Analytics dashboard
+- [ ] Android app integration
+
+## Deployment
+
+### Cloud Hosting (Recommended)
+
+**Fly.io Deployment** - Cost: ~$2-3/month
+- See [Fly.io Quick Start](docs/FLYIO_QUICKSTART.md) for fast deployment
+- See [Full Fly.io Deployment Guide](docs/DEPLOYMENT_FLYIO.md) for detailed instructions
+- Includes automatic scaling, global CDN, and free SSL
+
+### Self-Hosting
+
+**Docker Compose (NAS/VPS)**
+- See [Getting Started](GETTING_STARTED.md) for local development
+- See [NAS Deployment Guide](docs/NAS_DEPLOYMENT.md) for self-hosting
+- Requires PostgreSQL and persistent storage
+
+## Email Notifications
+
+The portfolio includes email notifications for comment moderation. See [Email Setup Guide](docs/EMAIL_SETUP.md) for configuration with SendGrid or other SMTP providers.
 
 ## Contributing
 

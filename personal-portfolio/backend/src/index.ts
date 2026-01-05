@@ -11,7 +11,12 @@ import { embedRoutes } from './routes/embeds';
 import { logger } from './services/LoggerService';
 
 const app: Express = express();
-const PORT = process.env.API_PORT || 3001;
+const PORT = parseInt(process.env.API_PORT || '3001', 10);
+
+// Trust Fly.io proxy
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 // Validate required environment variables
 const requiredEnvVars = ['JWT_SECRET'];
@@ -91,9 +96,9 @@ const startServer = async () => {
     await AppDataSource.initialize();
     logger.info('Database connected');
 
-    app.listen(PORT, () => {
-      logger.info(`Server running on http://localhost:${PORT}`);
-      logger.info(`API available at http://localhost:${PORT}/api`);
+    app.listen(PORT, '0.0.0.0', () => {
+      logger.info(`Server running on http://0.0.0.0:${PORT}`);
+      logger.info(`API available at http://0.0.0.0:${PORT}/api`);
     });
   } catch (error) {
     logger.error('Failed to start server', error);

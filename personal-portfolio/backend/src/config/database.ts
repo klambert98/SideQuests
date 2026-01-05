@@ -14,4 +14,14 @@ export const AppDataSource = new DataSource({
   entities: [User, Entry, Media, Embed, Like, Comment],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],
+  // Connection pooling configuration for scalability
+  extra: {
+    max: 20, // Maximum number of connections in the pool
+    min: 2, // Minimum number of connections in the pool
+    idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+    connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection cannot be established
+    statementTimeout: 30000, // Cancel queries that take longer than 30 seconds
+  },
+  // Retry logic for connection failures
+  maxQueryExecutionTime: 10000, // Log slow queries (> 10 seconds)
 });

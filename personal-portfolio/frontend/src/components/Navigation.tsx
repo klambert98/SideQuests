@@ -85,6 +85,13 @@ export function Navigation(): JSX.Element {
                     >
                       📊 Metrics
                     </Link>
+                    <Link
+                      href="/dashboard/moderation"
+                      className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                      onClick={() => setShowDashboardDropdown(false)}
+                    >
+                      🛡️ Moderation
+                    </Link>
                   </div>
                 )}
               </div>

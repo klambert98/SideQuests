@@ -1,0 +1,29 @@
+# Fly.io configuration for Personal Portfolio
+# This deploys both frontend and backend as separate apps
+
+app = "personal-portfolio"
+primary_region = "ord" # Chicago - change to your preferred region
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/api/health"
+
+# Note: You'll deploy frontend and backend separately
+# See docs/DEPLOYMENT_FLYIO.md for full instructions

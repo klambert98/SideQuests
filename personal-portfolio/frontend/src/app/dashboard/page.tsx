@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import type { Entry } from '@/types';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
+import { validateEntry } from '@/lib/validation';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -51,11 +52,25 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!token) return;
 
+    // Validation using centralized utility
+    const tags = formData.tags.split(',').map((t) => t.trim()).filter(Boolean);
+    const validation = validateEntry(
+      formData.title,
+      formData.content,
+      formData.summary,
+      tags
+    );
+    
+    if (!validation.isValid) {
+      alert('Please fix the following errors:\n\n' + validation.errors.join('\n'));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const newEntry = await api.entries.create(token, {
         ...formData,
-        tags: formData.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        tags, // Use the already computed tags array
       });
 
       setEntries([newEntry, ...entries]);
@@ -68,8 +83,10 @@ export default function DashboardPage() {
         tags: '',
       });
       setShowForm(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create entry:', error);
+      const errorMessage = error?.data?.error || error?.message || 'Failed to create entry';
+      alert('Error: ' + errorMessage);
     } finally {
       setIsSubmitting(false);
     }
