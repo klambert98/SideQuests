@@ -8,11 +8,18 @@ export class EmbedService {
   async createEmbed(url: string, type: EmbedType, entryId?: string) {
     const embed = new Embed();
     embed.url = url;
-    embed.type = type;
+    
+    // Auto-detect type if provided type is 'custom' or doesn't match URL
+    let detectedType = type;
+    if (type === EmbedType.CUSTOM || type === 'custom' as any) {
+      detectedType = this.detectEmbedType(url);
+    }
+    
+    embed.type = detectedType;
 
     // Extract metadata based on type
     try {
-      const metadata = await this.extractMetadata(url, type);
+      const metadata = await this.extractMetadata(url, detectedType);
       embed.embedCode = metadata.embedCode;
       embed.thumbnail = metadata.thumbnail;
       embed.title = metadata.title;
@@ -27,6 +34,36 @@ export class EmbedService {
     }
 
     return await this.embedRepository.save(embed);
+  }
+
+  private detectEmbedType(url: string): EmbedType {
+    // Check for YouTube
+    if (this.extractYoutubeId(url)) {
+      return EmbedType.YOUTUBE;
+    }
+    
+    // Check for Instagram
+    if (this.extractInstagramId(url)) {
+      return EmbedType.INSTAGRAM;
+    }
+    
+    // Check for Twitter/X
+    if (this.extractTwitterId(url)) {
+      return EmbedType.TWITTER;
+    }
+    
+    // Check for Vimeo
+    if (this.extractVimeoId(url)) {
+      return EmbedType.VIMEO;
+    }
+    
+    // Check for Spotify
+    if (this.extractSpotifyId(url)) {
+      return EmbedType.SPOTIFY;
+    }
+    
+    // Default to custom
+    return EmbedType.CUSTOM;
   }
 
   private async extractMetadata(url: string, type: EmbedType) {
@@ -76,7 +113,17 @@ export class EmbedService {
 
       case EmbedType.CUSTOM:
       default: {
-        metadata.embedCode = `<a href="${url}" target="_blank">${url}</a>`;
+        // For custom URLs, try to fetch Open Graph metadata
+        try {
+          const ogMetadata = await this.fetchOpenGraphMetadata(url);
+          metadata.title = ogMetadata.title;
+          metadata.description = ogMetadata.description;
+          metadata.thumbnail = ogMetadata.image;
+          metadata.embedCode = `<a href="${url}" target="_blank" rel="noopener noreferrer"><div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #f9f9f9;"><img src="${ogMetadata.image || ''}" alt="preview" style="max-width: 100%; border-radius: 4px; margin-bottom: 8px;" /><h4 style="margin: 8px 0; font-weight: bold;">${ogMetadata.title || 'Link'}</h4><p style="margin: 4px 0; font-size: 12px; color: #666;">${ogMetadata.description || url}</p></div></a>`;
+        } catch (error) {
+          console.error('Error fetching Open Graph metadata:', error);
+          metadata.embedCode = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        }
         break;
       }
     }
@@ -114,6 +161,45 @@ export class EmbedService {
   private extractSpotifyId(url: string): string | null {
     const match = url.match(/spotify\.com\/track\/([a-zA-Z0-9]+)/);
     return match ? match[1] : null;
+  }
+
+  private async fetchOpenGraphMetadata(url: string) {
+    try {
+      const response = await axios.get(url, {
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      });
+
+      const html = response.data;
+      const metadata: any = {};
+
+      // Extract Open Graph meta tags
+      const ogTitleMatch = html.match(/<meta property="og:title" content="([^"]*)">/);
+      metadata.title = ogTitleMatch ? ogTitleMatch[1] : this.extractTitle(html);
+
+      const ogDescriptionMatch = html.match(/<meta property="og:description" content="([^"]*)">/);
+      metadata.description = ogDescriptionMatch ? ogDescriptionMatch[1] : this.extractDescription(html);
+
+      const ogImageMatch = html.match(/<meta property="og:image" content="([^"]*)">/);
+      metadata.image = ogImageMatch ? ogImageMatch[1] : null;
+
+      return metadata;
+    } catch (error) {
+      console.error('Error fetching metadata:', error);
+      return { title: null, description: null, image: null };
+    }
+  }
+
+  private extractTitle(html: string): string | null {
+    const titleMatch = html.match(/<title>([^<]*)<\/title>/);
+    return titleMatch ? titleMatch[1] : null;
+  }
+
+  private extractDescription(html: string): string | null {
+    const descriptionMatch = html.match(/<meta name="description" content="([^"]*)">/);
+    return descriptionMatch ? descriptionMatch[1] : null;
   }
 
   async deleteEmbed(id: string) {

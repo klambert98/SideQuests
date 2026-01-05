@@ -27,9 +27,29 @@ if (!corsOrigin && process.env.NODE_ENV === 'production') {
   throw new Error('CORS_ORIGIN environment variable is required in production');
 }
 
+// Allow multiple origins in development
+const allowedOrigins = corsOrigin 
+  ? corsOrigin.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000', 'http://localhost:3002'];
+
 app.use(cors({
-  origin: corsOrigin || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like Postman, curl, or server-to-server)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Reject other origins
+    return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json({ limit: '50mb' }));

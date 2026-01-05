@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { AuthRequest, authenticate } from '../middleware/authenticate';
 import { entryService } from '../services/EntryService';
+import { interactionService } from '../services/InteractionService';
 import { CreateEntryDto, UpdateEntryDto } from '../dtos';
 import { validateDto } from '../utils/validation';
 
@@ -51,6 +52,86 @@ entryRoutes.get('/search/:query', async (req: any, res: Response) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+// ============================================
+// Routes with /:id/... - MUST come before /:id
+// ============================================
+
+// Like entry
+entryRoutes.post('/:id/like', authenticate, async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    await interactionService.addLike(id, req.userId!);
+    res.status(201).json({ message: 'Entry liked' });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Unlike entry
+entryRoutes.delete('/:id/like', authenticate, async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    await interactionService.removeLike(id, req.userId!);
+    res.json({ message: 'Like removed' });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get likes for entry
+entryRoutes.get('/:id/likes', async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const likes = await interactionService.getLikes(id);
+    res.json(likes);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Add comment to entry
+entryRoutes.post('/:id/comments', authenticate, async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { text, name } = req.body;
+
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ error: 'Comment text is required' });
+    }
+
+    const comment = await interactionService.addComment(id, req.userId!, text, name);
+    res.status(201).json(comment);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get comments for entry
+entryRoutes.get('/:id/comments', async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const comments = await interactionService.getComments(id);
+    res.json(comments);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete comment
+entryRoutes.delete('/:id/comments/:commentId', authenticate, async (req: any, res: Response) => {
+  try {
+    const { id, commentId } = req.params;
+    await interactionService.deleteComment(commentId, id, req.userId!);
+    res.json({ message: 'Comment deleted' });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ============================================
+// Routes with /:id - MUST come after /:id/...
+// ============================================
 
 // Get single entry
 entryRoutes.get('/:id', async (req: any, res: Response) => {

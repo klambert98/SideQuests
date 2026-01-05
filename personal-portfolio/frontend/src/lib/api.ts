@@ -1,4 +1,14 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = API_URL.replace('/api', '');
+
+// Utility to construct full media URL
+export const getMediaUrl = (mediaPath: string): string => {
+  if (!mediaPath) return '';
+  if (mediaPath.startsWith('http://') || mediaPath.startsWith('https://')) {
+    return mediaPath;
+  }
+  return `${API_BASE_URL}${mediaPath}`;
+};
 
 export class APIError extends Error {
   constructor(
@@ -115,6 +125,37 @@ export const api = {
 
     delete: (token: string, id: string) =>
       apiFetch(`${API_URL}/entries/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    like: (token: string, entryId: string) =>
+      apiFetch(`${API_URL}/entries/${entryId}/like`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    unlike: (token: string, entryId: string) =>
+      apiFetch(`${API_URL}/entries/${entryId}/like`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    addComment: (token: string, entryId: string, text: string, name?: string) =>
+      apiFetch(`${API_URL}/entries/${entryId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text, ...(name && { name }) }),
+      }),
+
+    getComments: (entryId: string) =>
+      apiFetch(`${API_URL}/entries/${entryId}/comments`),
+
+    deleteComment: (token: string, entryId: string, commentId: string) =>
+      apiFetch(`${API_URL}/entries/${entryId}/comments/${commentId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       }),

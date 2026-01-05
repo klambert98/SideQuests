@@ -1,6 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { Entry } from '@/types';
+import { getMediaUrl } from '@/lib/api';
+import { OptimizedImage } from './OptimizedImage';
 
 type TimelineEntryCardProps = {
   entry: Entry;
@@ -11,6 +14,9 @@ export function TimelineEntryCard({ entry }: TimelineEntryCardProps) {
   const day = date.toLocaleDateString('en-US', { day: '2-digit' });
   const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+  // Get the first media item (prefer images/videos)
+  const firstMedia = entry.media && entry.media.length > 0 ? entry.media[0] : null;
+
   return (
     <article className="pb-8">
       <div className="flex gap-6">
@@ -20,21 +26,38 @@ export function TimelineEntryCard({ entry }: TimelineEntryCardProps) {
           <div className="text-sm text-gray-600 dark:text-gray-400">{dateLabel.split(' ')[0]}</div>
         </div>
 
-        {/* Content */}
-        <div className="flex-grow">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{entry.title}</h3>
+        {/* Content Card */}
+        <div className="flex-grow bg-white/90 dark:bg-gray-900/80 backdrop-blur rounded-2xl shadow-lg border border-indigo-100/70 dark:border-indigo-900 p-6">
+          <Link href={`/entries/${entry.id}`}>
+            <h3 className="text-xl font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 cursor-pointer transition mb-2">
+              {entry.title}
+            </h3>
+          </Link>
           {entry.summary && (
-            <p className="text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">{entry.summary}</p>
+            <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-2">{entry.summary}</p>
+          )}
+
+          {/* First Media */}
+          {firstMedia && (
+            <div className="mb-4 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+              <Link href={`/entries/${entry.id}`}>
+                <OptimizedImage
+                  src={getMediaUrl(firstMedia.url)}
+                  alt={firstMedia.fileName || 'Media'}
+                  width={400}
+                  height={250}
+                  className="w-full h-auto cursor-pointer hover:opacity-90 transition"
+                />
+              </Link>
+            </div>
           )}
 
           {/* Meta Information */}
           <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400 mb-3">
             {entry.views !== undefined && <span>👁️ {entry.views} views</span>}
-            {entry.media && entry.media.length > 0 && (
-              <span>🖼️ {entry.media.length} {entry.media.length === 1 ? 'photo' : 'photos'}</span>
-            )}
-            {entry.embeds && entry.embeds.length > 0 && (
-              <span>🔗 {entry.embeds.length} {entry.embeds.length === 1 ? 'embed' : 'embeds'}</span>
+            {entry.likes !== undefined && <span>❤️ {entry.likes} likes</span>}
+            {entry.comments_count !== undefined && (
+              <span>💬 {entry.comments_count} {entry.comments_count === 1 ? 'comment' : 'comments'}</span>
             )}
           </div>
 

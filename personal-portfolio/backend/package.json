@@ -10,7 +10,8 @@
     "migrate": "typeorm migration:run",
     "migrate:create": "typeorm migration:create",
     "seed": "ts-node src/seeds/seed.ts",
-    "typeorm": "typeorm"
+    "typeorm": "typeorm",
+    "create-user": "ts-node src/scripts/createUser.ts"
   },
   "keywords": [
     "portfolio",
