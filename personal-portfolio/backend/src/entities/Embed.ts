@@ -29,26 +29,26 @@ export class Embed {
   @Column()
   url: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'text' })
   embedCode: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   thumbnail: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   title: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'text' })
   description: string;
 
-  @Column({ type: 'simple-json', nullable: true })
+  @Column({ type: 'json', nullable: true })
   metadata: Record<string, any>;
 
   @ManyToOne(() => Entry, (entry) => entry.embeds, { onDelete: 'CASCADE' })
   @JoinColumn()
   entry: Entry;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'uuid' })
   entryId: string;
 
   @CreateDateColumn()

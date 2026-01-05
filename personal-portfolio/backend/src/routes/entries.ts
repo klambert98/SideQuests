@@ -5,7 +5,7 @@ import { entryService } from '../services/EntryService';
 export const entryRoutes = Router();
 
 // Get timeline (organized by month)
-entryRoutes.get('/timeline', async (req: AuthRequest, res: Response) => {
+entryRoutes.get('/timeline', async (req: any, res: Response) => {
   try {
     const timeline = await entryService.getTimeline();
     res.json(timeline);
@@ -15,7 +15,7 @@ entryRoutes.get('/timeline', async (req: AuthRequest, res: Response) => {
 });
 
 // Get entries by month
-entryRoutes.get('/month/:year/:month', async (req: AuthRequest, res: Response) => {
+entryRoutes.get('/month/:year/:month', async (req: any, res: Response) => {
   try {
     const { year, month } = req.params;
     const entries = await entryService.getEntriesByMonth(parseInt(year), parseInt(month));
@@ -26,7 +26,7 @@ entryRoutes.get('/month/:year/:month', async (req: AuthRequest, res: Response) =
 });
 
 // Get all entries (paginated)
-entryRoutes.get('/', async (req: AuthRequest, res: Response) => {
+entryRoutes.get('/', async (req: any, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -40,7 +40,7 @@ entryRoutes.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // Search entries
-entryRoutes.get('/search/:query', async (req: AuthRequest, res: Response) => {
+entryRoutes.get('/search/:query', async (req: any, res: Response) => {
   try {
     const { query } = req.params;
     const entries = await entryService.searchEntries(query);
@@ -51,7 +51,7 @@ entryRoutes.get('/search/:query', async (req: AuthRequest, res: Response) => {
 });
 
 // Get single entry
-entryRoutes.get('/:id', async (req: AuthRequest, res: Response) => {
+entryRoutes.get('/:id', async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     const entry = await entryService.getEntry(id);
@@ -62,7 +62,7 @@ entryRoutes.get('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // Create entry
-entryRoutes.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+entryRoutes.post('/', authenticate, async (req: any, res: Response) => {
   try {
     const { title, content, entryDate, status, summary, tags } = req.body;
 
@@ -89,7 +89,7 @@ entryRoutes.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 // Update entry
-entryRoutes.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+entryRoutes.put('/:id', authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     const { title, content, status, summary, tags } = req.body;
@@ -113,7 +113,7 @@ entryRoutes.put('/:id', authenticate, async (req: AuthRequest, res: Response) =>
 });
 
 // Delete entry
-entryRoutes.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+entryRoutes.delete('/:id', authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     await entryService.deleteEntry(id, req.userId!);

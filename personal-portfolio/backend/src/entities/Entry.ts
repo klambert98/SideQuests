@@ -32,7 +32,7 @@ export class Entry {
   @Column({ type: 'date' })
   entryDate: Date;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   summary: string;
 
   @Column('simple-array', { default: '' })

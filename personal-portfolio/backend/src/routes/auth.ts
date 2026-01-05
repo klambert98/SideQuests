@@ -4,7 +4,7 @@ import { authService } from '../services/AuthService';
 
 export const authRoutes = Router();
 
-authRoutes.post('/login', async (req: AuthRequest, res: Response) => {
+authRoutes.post('/login', async (req: any, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -19,7 +19,7 @@ authRoutes.post('/login', async (req: AuthRequest, res: Response) => {
   }
 });
 
-authRoutes.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
+authRoutes.get('/me', authenticate, async (req: any, res: Response) => {
   try {
     const user = await authService.getUser(req.userId!);
     return res.json(user);
@@ -28,7 +28,7 @@ authRoutes.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-authRoutes.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
+authRoutes.put('/me', authenticate, async (req: any, res: Response) => {
   try {
     const user = await authService.updateUser(req.userId!, req.body);
     return res.json(user);
@@ -37,7 +37,7 @@ authRoutes.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-authRoutes.post('/logout', authenticate, (req: AuthRequest, res: Response) => {
+authRoutes.post('/logout', authenticate, (req: any, res: Response) => {
   // Logout is handled client-side by removing the token
   return res.json({ message: 'Logged out successfully' });
 });

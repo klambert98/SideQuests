@@ -8,7 +8,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 export const mediaRoutes = Router();
 
 // Upload media
-mediaRoutes.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res: Response) => {
+mediaRoutes.post('/upload', authenticate, upload.single('file'), async (req: any, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });
@@ -24,7 +24,7 @@ mediaRoutes.post('/upload', authenticate, upload.single('file'), async (req: Aut
 });
 
 // Get media for entry
-mediaRoutes.get('/entry/:entryId', async (req: AuthRequest, res: Response) => {
+mediaRoutes.get('/entry/:entryId', async (req: any, res: Response) => {
   try {
     const { entryId } = req.params;
     const media = await mediaService.getMedia(entryId);
@@ -35,7 +35,7 @@ mediaRoutes.get('/entry/:entryId', async (req: AuthRequest, res: Response) => {
 });
 
 // Delete media
-mediaRoutes.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+mediaRoutes.delete('/:id', authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     await mediaService.deleteMedia(id);

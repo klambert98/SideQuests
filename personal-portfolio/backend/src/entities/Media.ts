@@ -37,23 +37,23 @@ export class Media {
   @Column()
   url: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   thumbnailUrl: string | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'integer' })
   width: number | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'integer' })
   height: number | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   description: string | null;
 
   @ManyToOne(() => Entry, (entry) => entry.media, { onDelete: 'CASCADE' })
   @JoinColumn()
   entry: Entry;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'uuid' })
   entryId: string;
 
   @CreateDateColumn()

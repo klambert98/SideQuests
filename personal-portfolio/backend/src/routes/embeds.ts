@@ -6,7 +6,7 @@ import { EmbedType } from '../entities/Embed';
 export const embedRoutes = Router();
 
 // Create embed
-embedRoutes.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+embedRoutes.post('/', authenticate, async (req: any, res: Response) => {
   try {
     const { url, type, entryId } = req.body;
 
@@ -22,7 +22,7 @@ embedRoutes.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 // Delete embed
-embedRoutes.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+embedRoutes.delete('/:id', authenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     await embedService.deleteEmbed(id);

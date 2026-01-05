@@ -64,55 +64,59 @@ export default function TimelinePage() {
                 <div className="space-y-8">
                   {Object.entries(timeline[year])
                     .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
-                    .map(([month, entries]) => (
-                      <div key={`${year}-${month}`}>
-                        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
-                          <span className="inline-block w-4 h-4 rounded-full bg-indigo-600 mr-3"></span>
-                          {new Date(`${year}-${month}-01`).toLocaleDateString('en-US', {
-                            month: 'long',
-                          })}
-                        </h3>
+                    .map(([month, entries]) => {
+                      const safeEntries = Array.isArray(entries) ? entries : [];
 
-                        <div className="space-y-4 pl-8 border-l-2 border-indigo-200 dark:border-indigo-800">
-                          {entries.map((entry: any) => (
-                            <div
-                              key={entry.id}
-                              className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm hover:shadow-md transition border border-gray-200 dark:border-gray-800"
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-indigo-600 cursor-pointer">
-                                  {entry.title}
-                                </h4>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {new Date(entry.entryDate).toLocaleDateString()}
-                                </span>
-                              </div>
+                      return (
+                        <div key={`${year}-${month}`}>
+                          <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
+                            <span className="inline-block w-4 h-4 rounded-full bg-indigo-600 mr-3"></span>
+                            {new Date(`${year}-${month}-01`).toLocaleDateString('en-US', {
+                              month: 'long',
+                            })}
+                          </h3>
 
-                              {entry.summary && (
-                                <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                                  {entry.summary}
-                                </p>
-                              )}
-
-                              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                                <div className="flex gap-4">
-                                  {entry.media?.length > 0 && (
-                                    <span>📸 {entry.media.length} media</span>
-                                  )}
-                                  {entry.embeds?.length > 0 && (
-                                    <span>🔗 {entry.embeds.length} embeds</span>
-                                  )}
-                                  {entry.tags?.length > 0 && (
-                                    <span>🏷️ {entry.tags.length} tags</span>
-                                  )}
+                          <div className="space-y-4 pl-8 border-l-2 border-indigo-200 dark:border-indigo-800">
+                            {safeEntries.map((entry: any) => (
+                              <div
+                                key={entry.id}
+                                className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm hover:shadow-md transition border border-gray-200 dark:border-gray-800"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-indigo-600 cursor-pointer">
+                                    {entry.title}
+                                  </h4>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(entry.entryDate).toLocaleDateString()}
+                                  </span>
                                 </div>
-                                <span>{entry.views} views</span>
+
+                                {entry.summary && (
+                                  <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                                    {entry.summary}
+                                  </p>
+                                )}
+
+                                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                                  <div className="flex gap-4">
+                                    {entry.media?.length > 0 && (
+                                      <span>📸 {entry.media.length} media</span>
+                                    )}
+                                    {entry.embeds?.length > 0 && (
+                                      <span>🔗 {entry.embeds.length} embeds</span>
+                                    )}
+                                    {entry.tags?.length > 0 && (
+                                      <span>🏷️ {entry.tags.length} tags</span>
+                                    )}
+                                  </div>
+                                  <span>{entry.views} views</span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </div>
             ))}

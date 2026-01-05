@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 
 export default function Home() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   return (

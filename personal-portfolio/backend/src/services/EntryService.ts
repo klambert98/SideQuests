@@ -64,8 +64,14 @@ export class EntryService {
     const timeline: Record<string, Record<string, any[]>> = {};
 
     entries.forEach((entry) => {
-      const year = entry.entryDate.getFullYear().toString();
-      const month = (entry.entryDate.getMonth() + 1).toString().padStart(2, '0');
+      // entryDate is stored as a date column, which TypeORM returns as a string; normalize to Date
+      const entryDate = entry.entryDate instanceof Date ? entry.entryDate : new Date(entry.entryDate);
+      if (Number.isNaN(entryDate.getTime())) {
+        return; // skip malformed dates instead of crashing the timeline
+      }
+
+      const year = entryDate.getFullYear().toString();
+      const month = (entryDate.getMonth() + 1).toString().padStart(2, '0');
 
       if (!timeline[year]) {
         timeline[year] = {};
