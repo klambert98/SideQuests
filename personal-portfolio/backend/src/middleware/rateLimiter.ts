@@ -1,6 +1,15 @@
 import rateLimit from 'express-rate-limit';
 import { RATE_LIMITS } from '../constants/validation';
 
+// Helper to get client IP, respecting X-Forwarded-For for proxies
+const getClientIp = (req: any) => {
+  if (process.env.NODE_ENV === 'production') {
+    // In production (Fly.io), trust X-Forwarded-For
+    return req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+  }
+  return req.ip;
+};
+
 // General API rate limiter
 export const generalLimiter = rateLimit({
   windowMs: RATE_LIMITS.GENERAL_WINDOW_MS,
@@ -8,6 +17,7 @@ export const generalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req: any) => getClientIp(req),
 });
 
 // Stricter limiter for write operations (comments, likes)
@@ -17,6 +27,7 @@ export const interactionLimiter = rateLimit({
   message: 'Too many interactions from this IP, please slow down.',
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req: any) => getClientIp(req),
 });
 
 // Very strict limiter for comment creation
@@ -27,6 +38,7 @@ export const commentLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false, // Count all requests, not just successful ones
+  keyGenerator: (req: any) => getClientIp(req),
 });
 
 // Like/unlike limiter
@@ -36,6 +48,7 @@ export const likeLimiter = rateLimit({
   message: 'Too many like/unlike actions. Please wait a moment.',
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req: any) => getClientIp(req),
 });
 
 // Auth limiter (for login attempts)

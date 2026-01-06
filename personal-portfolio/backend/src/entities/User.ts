@@ -15,6 +15,9 @@ export class User {
   @Column({ default: 'Admin' })
   name: string;
 
+  @Column({ type: 'varchar', default: 'user' })
+  role: 'admin' | 'user';
+
   @Column({ nullable: true })
   avatar: string;
 

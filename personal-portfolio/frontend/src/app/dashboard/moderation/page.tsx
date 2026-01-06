@@ -10,13 +10,14 @@ import { Button } from '@/components/Button';
 type Comment = {
   id: string;
   text: string;
+  name?: string | null;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'flagged';
   moderationReason?: string;
   createdAt: string;
   user: {
     name?: string;
     email: string;
-  };
+  } | null;
   entry: {
     id: string;
     title: string;
@@ -197,7 +198,7 @@ export default function ModerationPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {comment.user.name || comment.user.email}
+                        {comment.user ? (comment.user.name || comment.user.email) : (comment.name || 'Anonymous')}
                       </span>
                       <span className="text-sm text-gray-500 dark:text-gray-500">
                         on
@@ -237,7 +238,7 @@ export default function ModerationPage() {
                   </div>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   <Button
                     onClick={() => handleModerate(comment.id, comment.entry.id, 'approved')}
                     variant="primary"
@@ -260,9 +261,11 @@ export default function ModerationPage() {
                   </Button>
                   <a
                     href={`/entries/${comment.entry.id}`}
-                    className="ml-auto text-sm text-blue-600 dark:text-blue-400 hover:underline self-center"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    View Entry →
+                    View Entry ↗
                   </a>
                 </div>
               </div>

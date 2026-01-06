@@ -44,17 +44,18 @@ if ([string]::IsNullOrWhiteSpace($FRONTEND_URL)) {
     Write-Host "Using default: $FRONTEND_URL" -ForegroundColor Yellow
 }
 
-# SendGrid Configuration
+# Resend Email Configuration
 Write-Host ""
-Write-Host "=== SendGrid Email Configuration ===" -ForegroundColor Cyan
-$SMTP_PASS = Read-Host "SendGrid API Key (from SendGrid dashboard)"
-$SMTP_FROM = Read-Host "Verified sender email (verified in SendGrid)"
+Write-Host "=== Resend Email Configuration ===" -ForegroundColor Cyan
+Write-Host "Get your API key from: https://resend.com/api-keys" -ForegroundColor Yellow
+$RESEND_API_KEY = Read-Host "Resend API Key (from Resend dashboard)"
+$RESEND_FROM_EMAIL = Read-Host "Verified sender email (verified in Resend, e.g., noreply@yourdomain.com)"
 
-if ([string]::IsNullOrWhiteSpace($SMTP_PASS)) {
-    Write-Host "Warning: No SendGrid API key provided. Email notifications will not work." -ForegroundColor Yellow
+if ([string]::IsNullOrWhiteSpace($RESEND_API_KEY)) {
+    Write-Host "Warning: No Resend API key provided. Email notifications will not work." -ForegroundColor Yellow
     $setupEmail = Read-Host "Continue without email? (y/n)"
     if ($setupEmail -ne 'y') {
-        Write-Host "Please set up SendGrid first and run this script again." -ForegroundColor Yellow
+        Write-Host "Please set up Resend first and run this script again." -ForegroundColor Yellow
         exit 0
     }
 }
@@ -77,21 +78,17 @@ $secrets = @(
     "JWT_SECRET=$JWT_SECRET",
     "CORS_ORIGIN=$FRONTEND_URL",
     "NEXT_PUBLIC_SITE_URL=$FRONTEND_URL",
-    "SMTP_HOST=smtp.sendgrid.net",
-    "SMTP_PORT=587",
-    "SMTP_SECURE=false",
-    "SMTP_USER=apikey",
     "ADMIN_EMAIL=$ADMIN_EMAIL",
     "MAX_FILE_SIZE=52428800",
     "ALLOWED_FILE_TYPES=jpg,jpeg,png,gif,mp4,mov,webm,pdf,doc,docx"
 )
 
-if (-not [string]::IsNullOrWhiteSpace($SMTP_PASS)) {
-    $secrets += "SMTP_PASS=$SMTP_PASS"
+if (-not [string]::IsNullOrWhiteSpace($RESEND_API_KEY)) {
+    $secrets += "RESEND_API_KEY=$RESEND_API_KEY"
 }
 
-if (-not [string]::IsNullOrWhiteSpace($SMTP_FROM)) {
-    $secrets += "SMTP_FROM=$SMTP_FROM"
+if (-not [string]::IsNullOrWhiteSpace($RESEND_FROM_EMAIL)) {
+    $secrets += "RESEND_FROM_EMAIL=$RESEND_FROM_EMAIL"
 }
 
 # Set secrets

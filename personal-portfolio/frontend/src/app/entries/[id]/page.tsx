@@ -14,7 +14,8 @@ type Comment = {
   id: string;
   text: string;
   name?: string;
-  userId: string;
+  userId?: string | null;
+  sessionToken?: string | null;
   createdAt: string;
   moderationStatus?: 'pending' | 'approved' | 'rejected' | 'flagged';
 };
@@ -29,6 +30,7 @@ export default function EntryDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [newCommentName, setNewCommentName] = useState('');
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -39,14 +41,21 @@ export default function EntryDetailPage() {
   const [embedUrl, setEmbedUrl] = useState('');
 
   useEffect(() => {
+    // Load session token from localStorage for anonymous users
+    const storedSessionToken = localStorage.getItem('commentSessionToken');
+    if (storedSessionToken) {
+      setSessionToken(storedSessionToken);
+    }
+
     const loadEntry = async () => {
       try {
         const data = await api.entries.getOne(id);
         setEntry(data);
         setLikes(data.likes || 0);
         
-        // Load comments for this entry
-        const commentsData = await api.entries.getComments(id);
+        // Load comments for this entry (pass token and sessionToken to see our pending comments)
+        const storedToken = localStorage.getItem('token');
+        const commentsData = await api.entries.getComments(id, storedToken || undefined, storedSessionToken || undefined);
         setComments(commentsData);
         
         // Check if current user has liked this entry
@@ -84,11 +93,21 @@ export default function EntryDetailPage() {
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !newComment.trim()) return;
+    if (!newComment.trim()) return;
 
     try {
-      const comment = await api.entries.addComment(token, id, newComment, newCommentName);
-      setComments([...comments, comment]);
+      const comment = await api.entries.addComment(id, newComment, newCommentName, token || undefined, sessionToken || undefined);
+      
+      // If this is an anonymous comment, save the session token
+      if (!token && comment.sessionToken) {
+        localStorage.setItem('commentSessionToken', comment.sessionToken);
+        setSessionToken(comment.sessionToken);
+      }
+      
+      // Reload comments to get the proper status and ensure consistency
+      const storedToken = localStorage.getItem('token');
+      const updatedComments = await api.entries.getComments(id, storedToken || undefined, sessionToken || comment.sessionToken);
+      setComments(updatedComments);
       setNewComment('');
       setNewCommentName('');
     } catch (err: any) {
@@ -97,10 +116,8 @@ export default function EntryDetailPage() {
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!token) return;
-    
     try {
-      await api.entries.deleteComment(token, id, commentId);
+      await api.entries.deleteComment(id, commentId, token || undefined, sessionToken || undefined);
       setComments(comments.filter(c => c.id !== commentId));
     } catch (err: any) {
       setError(err.message || 'Failed to delete comment');
@@ -613,42 +630,36 @@ export default function EntryDetailPage() {
               💬 Comments ({comments.length})
             </h2>
 
-            {token && (
-              <form onSubmit={handleCommentSubmit} className="mb-6 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+            <form onSubmit={handleCommentSubmit} className="mb-6 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+              <input
+                type="text"
+                value={newCommentName}
+                onChange={(e) => setNewCommentName(e.target.value)}
+                placeholder="Your name (optional, shows as Anonymous if blank)"
+                className="w-full px-4 py-3 border-b border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
+              />
+              <div className="flex gap-2 p-4 bg-gray-50 dark:bg-gray-800">
                 <input
                   type="text"
-                  value={newCommentName}
-                  onChange={(e) => setNewCommentName(e.target.value)}
-                  placeholder="Your name (optional, shows as Anonymous if blank)"
-                  className="w-full px-4 py-3 border-b border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Share your thoughts..."
+                  className="flex-grow px-0 py-0 bg-transparent dark:bg-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
                 />
-                <div className="flex gap-2 p-4 bg-gray-50 dark:bg-gray-800">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Share your thoughts..."
-                    className="flex-grow px-0 py-0 bg-transparent dark:bg-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
-                  />
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={!newComment.trim()}
-                  >
-                    Post
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {!token && (
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                <Link href="/login" className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                  Log in
-                </Link>
-                {' '}to comment on this entry.
-              </p>
-            )}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={!newComment.trim()}
+                >
+                  Post
+                </Button>
+              </div>
+              {!token && (
+                <p className="px-4 pb-3 text-xs text-gray-500 dark:text-gray-400">
+                  💡 Anonymous comments are moderated and will appear after admin approval.
+                </p>
+              )}
+            </form>
 
             {/* Comments List */}
             <div className="space-y-4">
@@ -657,7 +668,8 @@ export default function EntryDetailPage() {
               ) : (
                 comments.map((comment) => {
                   const isPending = comment.moderationStatus === 'pending';
-                  const isOwnComment = user && user.id === comment.userId;
+                  const isOwnComment = (user && user.id === comment.userId) || 
+                                       (!user && sessionToken && comment.sessionToken === sessionToken);
                   
                   return (
                     <div key={comment.id}>

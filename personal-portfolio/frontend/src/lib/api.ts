@@ -141,24 +141,49 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
       }),
 
-    addComment: (token: string, entryId: string, text: string, name?: string) =>
-      apiFetch(`${API_URL}/entries/${entryId}/comments`, {
+    addComment: (entryId: string, text: string, name?: string, token?: string, sessionToken?: string) => {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      return apiFetch(`${API_URL}/entries/${entryId}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ text, ...(name && { name }) }),
-      }),
+        headers,
+        body: JSON.stringify({ 
+          text, 
+          ...(name && { name }),
+          ...(sessionToken && { sessionToken }),
+        }),
+      });
+    },
 
-    getComments: (entryId: string) =>
-      apiFetch(`${API_URL}/entries/${entryId}/comments`),
+    getComments: (entryId: string, token?: string, sessionToken?: string) => {
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const url = new URL(`${API_URL}/entries/${entryId}/comments`);
+      if (sessionToken) {
+        url.searchParams.append('sessionToken', sessionToken);
+      }
+      return apiFetch(url.toString(), { headers });
+    },
 
-    deleteComment: (token: string, entryId: string, commentId: string) =>
-      apiFetch(`${API_URL}/entries/${entryId}/comments/${commentId}`, {
+    deleteComment: (entryId: string, commentId: string, token?: string, sessionToken?: string) => {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      return apiFetch(`${API_URL}/entries/${entryId}/comments/${commentId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+        headers,
+        body: sessionToken ? JSON.stringify({ sessionToken }) : undefined,
+      });
+    },
   },
 
   // Media endpoints
@@ -200,6 +225,31 @@ export const api = {
     delete: (token: string, id: string) =>
       apiFetch(`${API_URL}/embeds/${id}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+  },
+
+  // Moderation endpoints
+  moderation: {
+    getPendingComments: (token: string) =>
+      apiFetch(`${API_URL}/entries/moderation/pending`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    getFlaggedComments: (token: string) =>
+      apiFetch(`${API_URL}/entries/moderation/flagged`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    approveComment: (token: string, commentId: string) =>
+      apiFetch(`${API_URL}/entries/moderation/${commentId}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    rejectComment: (token: string, commentId: string) =>
+      apiFetch(`${API_URL}/entries/moderation/${commentId}/reject`, {
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       }),
   },

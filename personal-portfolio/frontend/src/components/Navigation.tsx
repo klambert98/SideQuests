@@ -79,6 +79,13 @@ export function Navigation(): JSX.Element {
                       ✏️ Add New Post
                     </Link>
                     <Link
+                      href="/dashboard/entries"
+                      className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                      onClick={() => setShowDashboardDropdown(false)}
+                    >
+                      📚 Manage Entries
+                    </Link>
+                    <Link
                       href="/dashboard/metrics"
                       className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                       onClick={() => setShowDashboardDropdown(false)}
@@ -176,11 +183,25 @@ export function Navigation(): JSX.Element {
                   ✏️ Add New Post
                 </Link>
                 <Link
+                  href="/dashboard/entries"
+                  className="block py-2 pl-4 hover:text-indigo-600"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  📚 Manage Entries
+                </Link>
+                <Link
                   href="/dashboard/metrics"
                   className="block py-2 pl-4 hover:text-indigo-600"
                   onClick={() => setShowMobileMenu(false)}
                 >
                   📊 Metrics
+                </Link>
+                <Link
+                  href="/dashboard/moderation"
+                  className="block py-2 pl-4 hover:text-indigo-600"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  🛡️ Moderation
                 </Link>
                 <Link
                   href="/logout"

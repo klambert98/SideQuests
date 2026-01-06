@@ -91,17 +91,32 @@ entryRoutes.get('/:id/likes', async (req: any, res: Response) => {
   }
 });
 
-// Add comment to entry
-entryRoutes.post('/:id/comments', commentLimiter, authenticate, async (req: any, res: Response) => {
+// Add comment to entry (anonymous or authenticated)
+entryRoutes.post('/:id/comments', commentLimiter, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
-    const { text, name } = req.body;
+    const { text, name, sessionToken } = req.body;
 
     if (!text || typeof text !== 'string') {
       return res.status(400).json({ error: 'Comment text is required' });
     }
 
-    const comment = await interactionService.addComment(id, req.userId!, text, name);
+    // Check if user is authenticated via Authorization header
+    const token = req.headers.authorization?.split(' ')[1];
+    let userId: string | null = null;
+    
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
+        userId = decoded.userId;
+      } catch (error) {
+        // Invalid token, treat as anonymous
+        userId = null;
+      }
+    }
+
+    const comment = await interactionService.addComment(id, userId, text, name, sessionToken);
     res.status(201).json(comment);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -112,19 +127,52 @@ entryRoutes.post('/:id/comments', commentLimiter, authenticate, async (req: any,
 entryRoutes.get('/:id/comments', async (req: any, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.headers.authorization ? req.userId : undefined;
-    const comments = await interactionService.getComments(id, userId);
+    const sessionToken = req.query.sessionToken as string | undefined;
+    
+    // Check if user is authenticated
+    const token = req.headers.authorization?.split(' ')[1];
+    let userId: string | undefined;
+    
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
+        userId = decoded.userId;
+      } catch (error) {
+        // Invalid token, ignore
+        userId = undefined;
+      }
+    }
+    
+    const comments = await interactionService.getComments(id, userId, sessionToken);
     res.json(comments);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Delete comment
-entryRoutes.delete('/:id/comments/:commentId', interactionLimiter, authenticate, async (req: any, res: Response) => {
+// Delete comment (authenticated or anonymous with session token)
+entryRoutes.delete('/:id/comments/:commentId', interactionLimiter, async (req: any, res: Response) => {
   try {
     const { id, commentId } = req.params;
-    await interactionService.deleteComment(commentId, id, req.userId!);
+    const { sessionToken } = req.body;
+    
+    // Check if user is authenticated
+    const token = req.headers.authorization?.split(' ')[1];
+    let userId: string | undefined;
+    
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
+        userId = decoded.userId;
+      } catch (error) {
+        // Invalid token
+        userId = undefined;
+      }
+    }
+    
+    await interactionService.deleteComment(commentId, id, userId, sessionToken);
     res.json({ message: 'Comment deleted' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -156,7 +204,8 @@ entryRoutes.post('/:id/comments/:commentId/moderate', authenticate, async (req: 
     const comment = await interactionService.moderateComment(commentId, req.userId!, status, reason);
     res.json({ message: 'Comment moderated', comment });
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    const statusCode = error.statusCode || 400;
+    res.status(statusCode).json({ error: error.message });
   }
 });
 
@@ -166,7 +215,8 @@ entryRoutes.get('/moderation/pending', authenticate, async (req: any, res: Respo
     const comments = await interactionService.getPendingComments(req.userId!);
     res.json(comments);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    const statusCode = error.statusCode || 400;
+    res.status(statusCode).json({ error: error.message });
   }
 });
 
@@ -176,7 +226,8 @@ entryRoutes.get('/moderation/flagged', authenticate, async (req: any, res: Respo
     const comments = await interactionService.getFlaggedComments(req.userId!);
     res.json(comments);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    const statusCode = error.statusCode || 400;
+    res.status(statusCode).json({ error: error.message });
   }
 });
 

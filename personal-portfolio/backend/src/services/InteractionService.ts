@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/database';
 import { Like } from '../entities/Like';
-import { Comment } from '../entities/Comment';
+import { Comment, ModerationStatus } from '../entities/Comment';
 import { Entry } from '../entities/Entry';
 import { User } from '../entities/User';
 import { emailService } from './EmailService';
@@ -86,7 +86,7 @@ export class InteractionService {
     });
   }
 
-  async addComment(entryId: string, userId: string, text: string, name?: string) {
+  async addComment(entryId: string, userId: string | null, text: string, name?: string, sessionToken?: string) {
     if (!text.trim()) {
       throw new ValidationError(VALIDATION_MESSAGES.COMMENT_EMPTY);
     }
@@ -99,11 +99,18 @@ export class InteractionService {
       throw new ValidationError(VALIDATION_MESSAGES.COMMENT_NAME_TOO_LONG);
     }
 
+    // Generate session token if not provided (for anonymous users)
+    const crypto = require('crypto');
+    const finalSessionToken = sessionToken || crypto.randomBytes(32).toString('hex');
+
     const comment = new Comment();
     comment.entryId = entryId;
     comment.userId = userId;
+    comment.sessionToken = userId ? null : finalSessionToken; // Only set sessionToken for anonymous users
     comment.text = text;
     comment.name = name && name.trim() ? name.trim() : null;
+    // Auto-approve comments from authenticated users
+    comment.moderationStatus = userId ? 'approved' : 'pending';
 
     const savedComment = await this.commentRepository.save(comment);
 
@@ -116,12 +123,13 @@ export class InteractionService {
         where: { id: entryId },
         relations: ['author']
       });
-      const user = await this.userRepository.findOne({ where: { id: userId } });
 
       if (entry && savedComment.moderationStatus === 'pending') {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
         const moderationUrl = `${siteUrl}/dashboard/moderation`;
         const adminEmail = process.env.ADMIN_EMAIL;
+        
+        const commenterName = name || (userId ? 'Authenticated user' : 'Anonymous');
         
         if (adminEmail) {
           await emailService.sendModerationNotification(
@@ -140,55 +148,73 @@ export class InteractionService {
       // Don't fail the comment operation if email fails
     }
 
-    // Return comment with user data
-    return await this.commentRepository.findOne({
+    // Return comment with user data and session token (for anonymous users to track their comments)
+    const returnedComment = await this.commentRepository.findOne({
       where: { id: savedComment.id },
       relations: ['user'],
     });
+
+    // Include sessionToken in response for anonymous users
+    return {
+      ...returnedComment,
+      sessionToken: userId ? undefined : finalSessionToken
+    };
   }
 
-  async getComments(entryId: string, userId?: string) {
-    // If userId provided, include their pending comments too
-    if (userId) {
-      return await this.commentRepository.find({
-        where: [
-          { entryId, moderationStatus: 'approved' },
-          { entryId, userId, moderationStatus: 'pending' }
-        ],
-        relations: ['user'],
-        order: { createdAt: 'ASC' },
-      });
-    }
+  async getComments(entryId: string, userId?: string, sessionToken?: string) {
+    const baseApprovedCondition = { entryId, moderationStatus: 'approved' as ModerationStatus };
     
-    // Public view - only approved comments
+    const conditions: any[] = [baseApprovedCondition];
+
+    // If userId provided, include their pending comments
+    if (userId) {
+      conditions.push({ entryId, userId, moderationStatus: 'pending' as ModerationStatus });
+    }
+
+    // If sessionToken provided, include pending comments from this session
+    if (sessionToken) {
+      conditions.push({ entryId, sessionToken, moderationStatus: 'pending' as ModerationStatus });
+    }
+
     return await this.commentRepository.find({
-      where: { 
-        entryId,
-        moderationStatus: 'approved'
-      },
+      where: conditions,
       relations: ['user'],
       order: { createdAt: 'ASC' },
     });
   }
 
-  async deleteComment(commentId: string, entryId: string, userId: string) {
+  async deleteComment(commentId: string, entryId: string, userId?: string, sessionToken?: string) {
     const comment = await this.commentRepository.findOne({
       where: { id: commentId },
     });
 
     if (!comment) {
-      throw new Error('Comment not found');
+      throw new NotFoundError('Comment not found');
     }
 
-    // Only allow comment creator or entry author to delete
-    const entry = await this.entryRepository.findOne({ where: { id: entryId } });
-    if (comment.userId !== userId && entry?.authorId !== userId) {
-      throw new Error('Unauthorized: You can only delete your own comments');
+    // Check if user is an admin
+    let isAdmin = false;
+    if (userId) {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      isAdmin = user?.role === 'admin';
+    }
+
+    // Allow deletion if:
+    // 1. User is an admin
+    // 2. User is authenticated and owns the comment
+    // 3. User has matching sessionToken (anonymous) and comment is still pending
+    const canDelete = 
+      isAdmin ||
+      (userId && comment.userId === userId) ||
+      (sessionToken && comment.sessionToken === sessionToken && comment.moderationStatus === 'pending');
+
+    if (!canDelete) {
+      throw new UnauthorizedError('You can only delete your own comments');
     }
 
     await this.commentRepository.remove(comment);
 
-    // Decrement comments count on entry
+    // Decrement comments count
     await this.entryRepository.decrement({ id: entryId }, 'comments_count', 1);
   }
 

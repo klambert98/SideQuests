@@ -6,11 +6,37 @@ import { sanitizeHTML, sanitizeArray, stripHTML } from '../utils/sanitize';
 export class EntryService {
   private entryRepository = AppDataSource.getRepository(Entry);
 
+  private generateSlug(title: string): string {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  private async ensureUniqueSlug(baseSlug: string, excludeId?: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.entryRepository.findOne({ 
+        where: { slug },
+        select: ['id']
+      });
+
+      if (!existing || (excludeId && existing.id === excludeId)) {
+        return slug;
+      }
+
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+
   async createEntry(data: Partial<Entry>, userId: string) {
     const entry = new Entry();
     entry.title = stripHTML(data.title!); // Strip HTML from title
     entry.content = sanitizeHTML(data.content!); // Sanitize content HTML
-    entry.slug = data.title!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    
+    const baseSlug = this.generateSlug(data.title!);
+    entry.slug = await this.ensureUniqueSlug(baseSlug);
+    
     entry.entryDate = data.entryDate || new Date();
     entry.status = data.status || 'draft';
     entry.summary = data.summary ? stripHTML(data.summary) : ''; // Strip HTML from summary
@@ -119,7 +145,8 @@ export class EntryService {
     // Sanitize updated fields
     if (data.title) {
       entry.title = stripHTML(data.title);
-      entry.slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const baseSlug = this.generateSlug(data.title);
+      entry.slug = await this.ensureUniqueSlug(baseSlug, entry.id);
     }
     if (data.content) {
       entry.content = sanitizeHTML(data.content);

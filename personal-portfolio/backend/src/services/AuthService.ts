@@ -41,6 +41,7 @@ export class AuthService {
         name: user.name,
         avatar: user.avatar,
         bio: user.bio,
+        role: user.role,
       },
       token,
     };
@@ -61,6 +62,7 @@ export class AuthService {
       name: user.name,
       avatar: user.avatar,
       bio: user.bio,
+      role: user.role,
     };
   }
 

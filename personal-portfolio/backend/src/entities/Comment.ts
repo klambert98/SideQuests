@@ -6,6 +6,7 @@ export type ModerationStatus = 'pending' | 'approved' | 'rejected' | 'flagged';
 
 @Entity('comments')
 @Index(['entryId', 'createdAt'])
+@Index(['sessionToken'])
 export class Comment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -13,8 +14,11 @@ export class Comment {
   @Column()
   entryId: string;
 
-  @Column()
-  userId: string;
+  @Column({ nullable: true })
+  userId: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  sessionToken: string | null;
 
   @Column({ type: 'text' })
   text: string;
@@ -23,28 +27,29 @@ export class Comment {
   name: string | null;
 
   @Column({ 
+    name: 'moderation_status',
     type: 'varchar', 
     length: 20, 
     default: 'pending' // Comments require approval by default
   })
   moderationStatus: ModerationStatus;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'moderation_reason', type: 'text', nullable: true })
   moderationReason: string | null;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ name: 'moderated_by', type: 'uuid', nullable: true })
   moderatedBy: string | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'moderated_at', type: 'timestamp', nullable: true })
   moderatedAt: Date | null;
 
   @ManyToOne(() => Entry, (entry) => entry.comments, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'entryId' })
+  @JoinColumn()
   entry: Entry;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn()
+  user: User | null;
 
   @CreateDateColumn()
   createdAt: Date;

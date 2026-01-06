@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { logger } from './LoggerService';
 import { EMAIL_REGEX } from '../constants/validation';
 
@@ -26,36 +26,31 @@ export interface ModerationNotificationData {
 }
 
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
   private isConfigured: boolean = false;
+  private fromEmail: string = '';
 
   constructor() {
     this.initialize();
   }
 
   private initialize() {
-    const emailConfig = {
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    };
+    const apiKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
-    // Only configure if SMTP settings are provided
-    if (emailConfig.host && emailConfig.auth.user && emailConfig.auth.pass) {
-      this.transporter = nodemailer.createTransport(emailConfig);
+    // Only configure if Resend API key is provided
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+      this.fromEmail = fromEmail;
       this.isConfigured = true;
-      logger.info('Email service configured successfully');
+      logger.info('Email service configured with Resend');
     } else {
-      logger.warn('Email service not configured - SMTP settings missing');
+      logger.warn('Email service not configured - RESEND_API_KEY missing');
     }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
-    if (!this.isConfigured || !this.transporter) {
+    if (!this.isConfigured || !this.resend) {
       logger.warn('Email not sent - service not configured');
       return false;
     }
@@ -67,16 +62,19 @@ export class EmailService {
     }
 
     try {
-      const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      const response = await this.resend.emails.send({
+        from: this.fromEmail,
         to: options.to,
         subject: options.subject,
-        text: options.text,
-        html: options.html,
-      };
+        html: options.html || options.text || '',
+      });
 
-      const info = await this.transporter.sendMail(mailOptions);
-      logger.info(`Email sent: ${info.messageId}`);
+      if (response.error) {
+        logger.error('Failed to send email:', response.error);
+        return false;
+      }
+
+      logger.info(`Email sent: ${response.data?.id}`);
       return true;
     } catch (error) {
       logger.error('Failed to send email', error);

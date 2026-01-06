@@ -37,7 +37,7 @@ describe('Integration Tests - Comment Moderation', () => {
   });
 
   describe('Comment Status Management', () => {
-    it('should create comments with approved status by default', async () => {
+    it('should create comments with approved status for authenticated users', async () => {
       const mockComment = {
         id: '123',
         text: 'Test comment',
@@ -51,6 +51,27 @@ describe('Integration Tests - Comment Moderation', () => {
       entryRepository.increment.mockResolvedValue({});
 
       const result = await interactionService.addComment('entry-1', 'user-1', 'Test comment');
+
+      expect(commentRepository.save).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should create comments with pending status for anonymous users', async () => {
+      const mockComment = {
+        id: '123',
+        text: 'Anonymous comment',
+        entryId: 'entry-1',
+        userId: null,
+        sessionToken: 'test-session-token',
+        moderationStatus: 'pending',
+      };
+
+      commentRepository.save.mockResolvedValue(mockComment);
+      commentRepository.findOne.mockResolvedValue(mockComment);
+      entryRepository.increment.mockResolvedValue({});
+      entryRepository.findOne.mockResolvedValue(null);
+
+      const result = await interactionService.addComment('entry-1', null, 'Anonymous comment');
 
       expect(commentRepository.save).toHaveBeenCalled();
       expect(result).toBeDefined();
@@ -165,7 +186,7 @@ describe('Integration Tests - Comment Moderation', () => {
 
       commentRepository.find.mockResolvedValue(mockComments);
 
-      const result = await interactionService.getPendingComments();
+      const result = await interactionService.getPendingComments('admin-user-id');
 
       expect(commentRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -182,7 +203,7 @@ describe('Integration Tests - Comment Moderation', () => {
 
       commentRepository.find.mockResolvedValue(mockComments);
 
-      const result = await interactionService.getFlaggedComments();
+      const result = await interactionService.getFlaggedComments('admin-user-id');
 
       expect(commentRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
