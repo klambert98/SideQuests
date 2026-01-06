@@ -7,6 +7,7 @@ import { emailService } from './EmailService';
 import { logger } from './LoggerService';
 import { VALIDATION_LIMITS, VALIDATION_MESSAGES } from '../constants/validation';
 import { AppError, UnauthorizedError, NotFoundError, ValidationError } from '../errors/AppError';
+import { randomBytes } from 'crypto';
 
 export class InteractionService {
   private likeRepository = AppDataSource.getRepository(Like);
@@ -100,8 +101,7 @@ export class InteractionService {
     }
 
     // Generate session token if not provided (for anonymous users)
-    const crypto = require('crypto');
-    const finalSessionToken = sessionToken || crypto.randomBytes(32).toString('hex');
+    const finalSessionToken = sessionToken || randomBytes(32).toString('hex');
 
     const comment = new Comment();
     comment.entryId = entryId;

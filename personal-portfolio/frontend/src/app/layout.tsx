@@ -1,6 +1,9 @@
 import '@/styles/globals.css';
 import type { Metadata, Viewport } from 'next';
 import { homeMetadata } from '@/lib/metadata';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { ToastContainer } from '@/components/Toast';
 
 export const metadata: Metadata = {
   ...homeMetadata,
@@ -26,7 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-        {children}
+        <ToastProvider>
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+          <ToastContainer />
+        </ToastProvider>
       </body>
     </html>
   );

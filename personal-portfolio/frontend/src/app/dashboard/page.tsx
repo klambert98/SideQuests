@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
 import type { Entry } from '@/types';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
@@ -12,6 +13,7 @@ import { validateEntry } from '@/lib/validation';
 export default function DashboardPage() {
   const router = useRouter();
   const { token, user, isAuthenticated } = useAuth();
+  const { error: toastError, success } = useToast();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +26,47 @@ export default function DashboardPage() {
     status: 'draft',
     tags: '',
   });
+
+  // Field-level validation state
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Validate individual field
+  const validateField = (name: string, value: string) => {
+    let error = '';
+
+    switch (name) {
+      case 'title':
+        if (!value.trim()) {
+          error = 'Title is required';
+        } else if (value.length < 3) {
+          error = 'Title must be at least 3 characters';
+        } else if (value.length > 200) {
+          error = 'Title must not exceed 200 characters';
+        }
+        break;
+      case 'content':
+        if (!value.trim()) {
+          error = 'Content is required';
+        } else if (value.length < 10) {
+          error = 'Content must be at least 10 characters';
+        }
+        break;
+      case 'summary':
+        if (value && value.length > 500) {
+          error = 'Summary must not exceed 500 characters';
+        }
+        break;
+    }
+
+    setFieldErrors((prev) => ({ ...prev, [name]: error }));
+    return error === '';
+  };
+
+  const handleFieldBlur = (name: string) => {
+    setTouchedFields((prev) => ({ ...prev, [name]: true }));
+    validateField(name, formData[name as keyof typeof formData]);
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,7 +95,26 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!token) return;
 
-    // Validation using centralized utility
+    // Validate all fields
+    const titleValid = validateField('title', formData.title);
+    const contentValid = validateField('content', formData.content);
+    const summaryValid = validateField('summary', formData.summary);
+
+    // Mark all fields as touched
+    setTouchedFields({
+      title: true,
+      content: true,
+      summary: true,
+      tags: true,
+    });
+
+    // Check if all validations passed
+    if (!titleValid || !contentValid || !summaryValid) {
+      toastError('Please fix validation errors before submitting');
+      return;
+    }
+
+    // Additional tag validation
     const tags = formData.tags.split(',').map((t) => t.trim()).filter(Boolean);
     const validation = validateEntry(
       formData.title,
@@ -62,7 +124,7 @@ export default function DashboardPage() {
     );
     
     if (!validation.isValid) {
-      alert('Please fix the following errors:\n\n' + validation.errors.join('\n'));
+      toastError('Please fix the following errors:\n\n' + validation.errors.join('\n'));
       return;
     }
 
@@ -82,11 +144,14 @@ export default function DashboardPage() {
         status: 'draft',
         tags: '',
       });
+      setFieldErrors({});
+      setTouchedFields({});
       setShowForm(false);
+      success('Entry created successfully');
     } catch (error: any) {
       console.error('Failed to create entry:', error);
       const errorMessage = error?.data?.error || error?.message || 'Failed to create entry';
-      alert('Error: ' + errorMessage);
+      toastError('Error: ' + errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -133,8 +198,12 @@ export default function DashboardPage() {
                 name="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.currentTarget.value })}
+                onBlur={() => handleFieldBlur('title')}
                 placeholder="Entry title"
                 required
+                error={touchedFields.title ? fieldErrors.title : undefined}
+                isValid={!!formData.title && !fieldErrors.title}
+                showValidation={touchedFields.title}
               />
 
               <FormField
@@ -142,9 +211,13 @@ export default function DashboardPage() {
                 name="content"
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.currentTarget.value })}
+                onBlur={() => handleFieldBlur('content')}
                 placeholder="Write your entry content..."
                 rows={6}
                 required
+                error={touchedFields.content ? fieldErrors.content : undefined}
+                isValid={!!formData.content && !fieldErrors.content}
+                showValidation={touchedFields.content}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -173,7 +246,12 @@ export default function DashboardPage() {
                 name="summary"
                 value={formData.summary}
                 onChange={(e) => setFormData({ ...formData, summary: e.currentTarget.value })}
+                onBlur={() => handleFieldBlur('summary')}
                 placeholder="Brief summary of the entry"
+                error={touchedFields.summary ? fieldErrors.summary : undefined}
+                isValid={formData.summary.length > 0 && !fieldErrors.summary}
+                showValidation={touchedFields.summary}
+                helpText={formData.summary ? `${formData.summary.length}/500 characters` : undefined}
               />
 
               <FormField

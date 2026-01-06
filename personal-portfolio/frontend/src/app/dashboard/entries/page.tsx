@@ -4,7 +4,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import { api } from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
 import { PageLayout } from '@/components/PageLayout';
+import { EntryListSkeleton } from '@/components/EntrySkeleton';
 import type { Entry } from '@/types';
 import Link from 'next/link';
 
@@ -12,6 +14,7 @@ function EntriesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, isAuthenticated } = useAuth();
+  const { error: toastError, success } = useToast();
   
   const [entries, setEntries] = useState<Entry[]>([]);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
@@ -134,9 +137,10 @@ function EntriesContent() {
       setEntries(entries.filter(e => !selectedEntries.has(e.id)));
       setSelectedEntries(new Set());
       setShowBulkActions(false);
+      success('Entries deleted successfully');
     } catch (error) {
       console.error('Failed to delete entries:', error);
-      alert('Failed to delete some entries');
+      toastError('Failed to delete some entries');
     }
   };
 
@@ -152,7 +156,7 @@ function EntriesContent() {
     }
 
     if (Object.keys(updates).length === 0) {
-      alert('Please select at least one field to update');
+      toastError('Please select at least one field to update');
       return;
     }
 
@@ -165,7 +169,7 @@ function EntriesContent() {
       window.location.reload();
     } catch (error) {
       console.error('Failed to update entries:', error);
-      alert('Failed to update some entries');
+      toastError('Failed to update some entries');
     }
   };
 
@@ -176,11 +180,16 @@ function EntriesContent() {
   if (isLoading) {
     return (
       <PageLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading entries...</p>
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+              📚 Manage Entries
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading your entries...
+            </p>
           </div>
+          <EntryListSkeleton count={10} />
         </div>
       </PageLayout>
     );

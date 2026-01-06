@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { AuthRequest, authenticate } from '../middleware/authenticate';
+import { AuthRequest, authenticate, optionalAuthenticate } from '../middleware/authenticate';
 import { entryService } from '../services/EntryService';
 import { interactionService } from '../services/InteractionService';
 import { CreateEntryDto, UpdateEntryDto } from '../dtos';
@@ -92,7 +92,7 @@ entryRoutes.get('/:id/likes', async (req: any, res: Response) => {
 });
 
 // Add comment to entry (anonymous or authenticated)
-entryRoutes.post('/:id/comments', commentLimiter, async (req: any, res: Response) => {
+entryRoutes.post('/:id/comments', commentLimiter, optionalAuthenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     const { text, name, sessionToken } = req.body;
@@ -101,22 +101,7 @@ entryRoutes.post('/:id/comments', commentLimiter, async (req: any, res: Response
       return res.status(400).json({ error: 'Comment text is required' });
     }
 
-    // Check if user is authenticated via Authorization header
-    const token = req.headers.authorization?.split(' ')[1];
-    let userId: string | null = null;
-    
-    if (token) {
-      try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
-        userId = decoded.userId;
-      } catch (error) {
-        // Invalid token, treat as anonymous
-        userId = null;
-      }
-    }
-
-    const comment = await interactionService.addComment(id, userId, text, name, sessionToken);
+    const comment = await interactionService.addComment(id, req.userId || null, text, name, sessionToken);
     res.status(201).json(comment);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -124,27 +109,12 @@ entryRoutes.post('/:id/comments', commentLimiter, async (req: any, res: Response
 });
 
 // Get comments for entry
-entryRoutes.get('/:id/comments', async (req: any, res: Response) => {
+entryRoutes.get('/:id/comments', optionalAuthenticate, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     const sessionToken = req.query.sessionToken as string | undefined;
     
-    // Check if user is authenticated
-    const token = req.headers.authorization?.split(' ')[1];
-    let userId: string | undefined;
-    
-    if (token) {
-      try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
-        userId = decoded.userId;
-      } catch (error) {
-        // Invalid token, ignore
-        userId = undefined;
-      }
-    }
-    
-    const comments = await interactionService.getComments(id, userId, sessionToken);
+    const comments = await interactionService.getComments(id, req.userId, sessionToken);
     res.json(comments);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -152,27 +122,12 @@ entryRoutes.get('/:id/comments', async (req: any, res: Response) => {
 });
 
 // Delete comment (authenticated or anonymous with session token)
-entryRoutes.delete('/:id/comments/:commentId', interactionLimiter, async (req: any, res: Response) => {
+entryRoutes.delete('/:id/comments/:commentId', interactionLimiter, optionalAuthenticate, async (req: any, res: Response) => {
   try {
     const { id, commentId } = req.params;
     const { sessionToken } = req.body;
     
-    // Check if user is authenticated
-    const token = req.headers.authorization?.split(' ')[1];
-    let userId: string | undefined;
-    
-    if (token) {
-      try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
-        userId = decoded.userId;
-      } catch (error) {
-        // Invalid token
-        userId = undefined;
-      }
-    }
-    
-    await interactionService.deleteComment(commentId, id, userId, sessionToken);
+    await interactionService.deleteComment(commentId, id, req.userId, sessionToken);
     res.json({ message: 'Comment deleted' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -209,7 +164,7 @@ entryRoutes.post('/:id/comments/:commentId/moderate', authenticate, async (req: 
   }
 });
 
-// Get pending comments (admin only)
+// Get pending comments (admin only) - MUST come before /:id
 entryRoutes.get('/moderation/pending', authenticate, async (req: any, res: Response) => {
   try {
     const comments = await interactionService.getPendingComments(req.userId!);
@@ -220,7 +175,7 @@ entryRoutes.get('/moderation/pending', authenticate, async (req: any, res: Respo
   }
 });
 
-// Get flagged comments (admin only)
+// Get flagged comments (admin only) - MUST come before /:id
 entryRoutes.get('/moderation/flagged', authenticate, async (req: any, res: Response) => {
   try {
     const comments = await interactionService.getFlaggedComments(req.userId!);

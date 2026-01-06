@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { api, getMediaUrl } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/contexts/ToastContext';
 import type { Entry } from '@/types';
 import { PageLayout } from '@/components/PageLayout';
 import { Button } from '@/components/Button';
 import { EmbedPreview } from '@/components/EmbedPreview';
+import { CommentListSkeleton } from '@/components/CommentSkeleton';
+import { SkeletonLine, SkeletonLoader } from '@/components/SkeletonLoader';
 import Link from 'next/link';
 
 type Comment = {
@@ -24,6 +27,7 @@ export default function EntryDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const { token, user } = useAuth();
+  const { error: toastError } = useToast();
   const [entry, setEntry] = useState<Entry | null>(null);
   const [likes, setLikes] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -32,7 +36,6 @@ export default function EntryDetailPage() {
   const [newCommentName, setNewCommentName] = useState('');
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [uploadedMedia, setUploadedMedia] = useState<any[]>([]);
@@ -64,14 +67,14 @@ export default function EntryDetailPage() {
           setIsLiked(hasLiked);
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load entry');
+        toastError(err.message || 'Failed to load entry');
       } finally {
         setIsLoading(false);
       }
     };
 
     loadEntry();
-  }, [id, user]);
+  }, [id, user, toastError]);
 
   const handleLike = async () => {
     if (!token) return;
@@ -87,7 +90,7 @@ export default function EntryDetailPage() {
         setIsLiked(true);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to update like');
+      toastError(err.message || 'Failed to update like');
     }
   };
 
@@ -111,7 +114,7 @@ export default function EntryDetailPage() {
       setNewComment('');
       setNewCommentName('');
     } catch (err: any) {
-      setError(err.message || 'Failed to add comment');
+      toastError(err.message || 'Failed to add comment');
     }
   };
 
@@ -120,7 +123,7 @@ export default function EntryDetailPage() {
       await api.entries.deleteComment(id, commentId, token || undefined, sessionToken || undefined);
       setComments(comments.filter(c => c.id !== commentId));
     } catch (err: any) {
-      setError(err.message || 'Failed to delete comment');
+      toastError(err.message || 'Failed to delete comment');
     }
   };
 
@@ -131,7 +134,7 @@ export default function EntryDetailPage() {
       await api.entries.delete(token, id);
       window.location.href = '/';
     } catch (err: any) {
-      setError(err.message || 'Failed to delete entry');
+      toastError(err.message || 'Failed to delete entry');
     }
   };
 
@@ -170,7 +173,7 @@ export default function EntryDetailPage() {
       setUploadedMedia([]);
       setNewEmbeds([]);
     } catch (err: any) {
-      setError(err.message || 'Failed to update entry');
+      toastError(err.message || 'Failed to update entry');
     }
   };
 
@@ -192,7 +195,7 @@ export default function EntryDetailPage() {
       }
       setUploadedMedia([...uploadedMedia, ...newMedia]);
     } catch (err: any) {
-      setError(err.message || 'Failed to process files');
+      toastError(err.message || 'Failed to process files');
     } finally {
       setUploadingFile(false);
     }
@@ -221,7 +224,7 @@ export default function EntryDetailPage() {
       const refreshedEntry = await api.entries.getOne(id);
       setEntry(refreshedEntry);
     } catch (err: any) {
-      setError(err.message || 'Failed to delete media');
+      toastError(err.message || 'Failed to delete media');
     }
   };
 
@@ -233,17 +236,36 @@ export default function EntryDetailPage() {
       const refreshedEntry = await api.entries.getOne(id);
       setEntry(refreshedEntry);
     } catch (err: any) {
-      setError(err.message || 'Failed to delete embed');
+      toastError(err.message || 'Failed to delete embed');
     }
   };
 
   if (isLoading) {
     return (
       <PageLayout showNavigation={false}>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading entry...</p>
+        <div className="max-w-4xl mx-auto py-8">
+          <div className="mb-8">
+            <SkeletonLine className="w-32 h-6 mb-4" />
+            <SkeletonLine className="h-12 w-3/4 mb-2" />
+            <SkeletonLine className="w-48 h-6" />
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 mb-8">
+            <div className="space-y-4">
+              <SkeletonLine />
+              <SkeletonLine />
+              <SkeletonLine />
+              <SkeletonLine className="w-5/6" />
+            </div>
+            
+            <div className="mt-8 space-y-3">
+              <SkeletonLoader width="w-full" height="h-64" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <SkeletonLine className="h-8 w-48 mb-6" />
+            <CommentListSkeleton count={3} />
           </div>
         </div>
       </PageLayout>
@@ -527,13 +549,6 @@ export default function EntryDetailPage() {
             </form>
           )}
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
 
         {!isEditing && (
           <>

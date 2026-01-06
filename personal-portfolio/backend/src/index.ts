@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import 'reflect-metadata';
 import { AppDataSource } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
@@ -9,22 +11,23 @@ import { entryRoutes } from './routes/entries';
 import { mediaRoutes } from './routes/media';
 import { embedRoutes } from './routes/embeds';
 import { logger } from './services/LoggerService';
+import { validateEnvironmentVariables } from './utils/envValidation';
 
 const app: Express = express();
 const PORT = parseInt(process.env.API_PORT || '3001', 10);
+
+// Validate environment variables at startup
+try {
+  validateEnvironmentVariables();
+} catch (error) {
+  logger.error('Environment validation failed:', error);
+  process.exit(1);
+}
 
 // Trust Fly.io proxy
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
-
-// Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET'];
-requiredEnvVars.forEach((varName) => {
-  if (!process.env[varName] && process.env.NODE_ENV === 'production') {
-    throw new Error(`Required environment variable ${varName} is not set`);
-  }
-});
 
 // CORS Configuration
 const corsOrigin = process.env.CORS_ORIGIN;
@@ -56,6 +59,18 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Request ID tracking middleware
+app.use((req: any, res: Response, next) => {
+  const requestId = req.headers['x-request-id'] || randomUUID();
+  req.requestId = requestId;
+  res.setHeader('X-Request-ID', requestId);
+  
+  // Log request with ID
+  logger.info(`[${requestId}] ${req.method} ${req.path}`);
+  
+  next();
+});
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));

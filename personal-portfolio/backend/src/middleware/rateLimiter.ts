@@ -1,13 +1,24 @@
 import rateLimit from 'express-rate-limit';
 import { RATE_LIMITS } from '../constants/validation';
 
-// Helper to get client IP, respecting X-Forwarded-For for proxies
-const getClientIp = (req: any) => {
+/**
+ * Helper to get client IP with proper validation.
+ * In production, Fly.io sets X-Forwarded-For header.
+ * We take the first IP (client) and validate it's a valid IP format.
+ */
+const getClientIp = (req: any): string => {
   if (process.env.NODE_ENV === 'production') {
-    // In production (Fly.io), trust X-Forwarded-For
-    return req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+      // Take first IP and validate it's not obviously spoofed
+      const clientIp = forwardedFor.split(',')[0].trim();
+      // Basic validation: should look like an IP address
+      if (/^[0-9.]+$|^[0-9a-fA-F:]+$/.test(clientIp)) {
+        return clientIp;
+      }
+    }
   }
-  return req.ip;
+  return req.ip || 'unknown';
 };
 
 // General API rate limiter

@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/contexts/ToastContext';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/Button';
+import { CommentCard } from '@/components/CommentCard';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { ModerationListSkeleton } from '@/components/ModerationSkeleton';
 
 type Comment = {
   id: string;
@@ -27,11 +31,16 @@ type Comment = {
 export default function ModerationPage() {
   const { token, isAuthenticated } = useAuth();
   const router = useRouter();
+  const { success, error: toastError } = useToast();
   const [pendingComments, setPendingComments] = useState<Comment[]>([]);
   const [flaggedComments, setFlaggedComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'flagged'>('pending');
   const [authChecked, setAuthChecked] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [pendingRejectComment, setPendingRejectComment] = useState<{ id: string; entryId: string } | null>(null);
+  const [isModeratingLoading, setIsModeratingLoading] = useState(false);
 
   useEffect(() => {
     setAuthChecked(true);
@@ -70,6 +79,7 @@ export default function ModerationPage() {
       }
     } catch (error) {
       console.error('Failed to fetch comments:', error);
+      toastError('Failed to load comments');
     } finally {
       setIsLoading(false);
     }
@@ -91,6 +101,7 @@ export default function ModerationPage() {
     if (!token) return;
 
     try {
+      setIsModeratingLoading(true);
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
       const response = await fetch(
         `${baseUrl}/entries/${entryId}/comments/${commentId}/moderate`,
@@ -105,15 +116,21 @@ export default function ModerationPage() {
       );
 
       if (response.ok) {
+        success(`Comment ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
         // Refresh the lists
         await fetchComments();
+        setRejectDialogOpen(false);
+        setRejectionReason('');
+        setPendingRejectComment(null);
       } else {
-        const error = await response.json();
-        alert(`Failed to moderate comment: ${error.error}`);
+        const errorData = await response.json();
+        toastError(`Failed to moderate comment: ${errorData.error}`);
       }
     } catch (error) {
       console.error('Failed to moderate comment:', error);
-      alert('Failed to moderate comment');
+      toastError('Failed to moderate comment');
+    } finally {
+      setIsModeratingLoading(false);
     }
   };
 
@@ -171,10 +188,7 @@ export default function ModerationPage() {
 
         {/* Comments List */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading comments...</p>
-          </div>
+          <ModerationListSkeleton count={5} />
         ) : commentsToShow.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
             <p className="text-gray-600 dark:text-gray-400">
@@ -186,92 +200,79 @@ export default function ModerationPage() {
         ) : (
           <div className="space-y-4">
             {commentsToShow.map((comment) => (
-              <div
+              <CommentCard
                 key={comment.id}
-                className={`bg-white dark:bg-gray-900 rounded-lg shadow-sm border ${
-                  activeTab === 'flagged'
-                    ? 'border-yellow-300 dark:border-yellow-700'
-                    : 'border-gray-200 dark:border-gray-800'
-                } p-6`}
+                text={comment.text}
+                name={comment.name}
+                author={comment.user}
+                createdAt={comment.createdAt}
+                entry={comment.entry}
+                status={comment.moderationStatus}
+                moderationReason={comment.moderationReason}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {comment.user ? (comment.user.name || comment.user.email) : (comment.name || 'Anonymous')}
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-500">
-                        on
-                      </span>
-                      <a
-                        href={`/entries/${comment.entry.id}`}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {comment.entry.title}
-                      </a>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-500">
-                      {new Date(comment.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  {activeTab === 'flagged' && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                      Flagged
-                    </span>
-                  )}
-                </div>
-
-                <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                    {comment.text}
-                  </p>
-                </div>
-
-                {comment.moderationReason && (
-                  <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
-                      Flag Reason:
-                    </p>
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                      {comment.moderationReason}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-3 flex-wrap">
-                  <Button
-                    onClick={() => handleModerate(comment.id, comment.entry.id, 'approved')}
-                    variant="primary"
-                  >
-                    ✓ Approve
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const reason = prompt('Rejection reason (optional):');
-                      handleModerate(
-                        comment.id,
-                        comment.entry.id,
-                        'rejected',
-                        reason || 'Rejected by moderator'
-                      );
-                    }}
-                    variant="secondary"
-                  >
-                    ✗ Reject
-                  </Button>
-                  <a
-                    href={`/entries/${comment.entry.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    View Entry ↗
-                  </a>
-                </div>
-              </div>
+                <Button
+                  onClick={() => handleModerate(comment.id, comment.entry.id, 'approved')}
+                  variant="primary"
+                  disabled={isModeratingLoading}
+                >
+                  ✓ Approve
+                </Button>
+                <Button
+                  onClick={() => {
+                    setPendingRejectComment({ id: comment.id, entryId: comment.entry.id });
+                    setRejectDialogOpen(true);
+                  }}
+                  variant="secondary"
+                  disabled={isModeratingLoading}
+                >
+                  ✗ Reject
+                </Button>
+                <a
+                  href={`/entries/${comment.entry.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  View Entry ↗
+                </a>
+              </CommentCard>
             ))}
           </div>
         )}
+
+        {/* Rejection Reason Dialog */}
+        <ConfirmDialog
+          isOpen={rejectDialogOpen}
+          title="Reject Comment"
+          message="Provide a reason for rejecting this comment (optional):"
+          confirmText="Reject"
+          cancelText="Cancel"
+          isDangerous={true}
+          isLoading={isModeratingLoading}
+          onConfirm={() => {
+            if (pendingRejectComment) {
+              handleModerate(
+                pendingRejectComment.id,
+                pendingRejectComment.entryId,
+                'rejected',
+                rejectionReason || 'Rejected by moderator'
+              );
+            }
+          }}
+          onCancel={() => {
+            setRejectDialogOpen(false);
+            setRejectionReason('');
+            setPendingRejectComment(null);
+          }}
+        >
+          <input
+            type="text"
+            placeholder="Enter rejection reason..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+          />
+        </ConfirmDialog>
       </main>
       <Footer />
     </div>
