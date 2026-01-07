@@ -22,6 +22,7 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 # Copy only runtime artifacts
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /packages/shared /packages/shared
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
