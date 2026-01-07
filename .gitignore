@@ -23,9 +23,6 @@ build/
 logs/
 .eslintcache
 
-# Docker
-.dockerignore
-
 # OS
 .DS_Store
 Thumbs.db
