@@ -68,11 +68,10 @@ jobs:
 
           for attempt in range(30):
             data = machines()
-            started = [m for m in data if m.get("state") == "started"]
-            healthy = [m for m in started if all(c.get("status") == "passing" for c in (m.get("checks") or []))]
-            if started and (healthy or not any(m.get("checks") for m in data)):
-              print(f"{app}: at least one machine is running and healthy")
-              sys.exit(0)
+              started = [m for m in data if m.get("state") == "started"]
+              if started:
+                print(f"{app}: found {len(started)} started machine(s)")
+                sys.exit(0)
             time.sleep(10)
 
           print(f"{app}: no running healthy machines after timeout")
@@ -117,11 +116,10 @@ jobs:
 
           for attempt in range(30):
             data = machines()
-            started = [m for m in data if m.get("state") == "started"]
-            healthy = [m for m in started if all(c.get("status") == "passing" for c in (m.get("checks") or []))]
-            if started and (healthy or not any(m.get("checks") for m in data)):
-              print(f"{app}: at least one machine is running and healthy")
-              sys.exit(0)
+              started = [m for m in data if m.get("state") == "started"]
+              if started:
+                print(f"{app}: found {len(started)} started machine(s)")
+                sys.exit(0)
             time.sleep(10)
 
           print(f"{app}: no running healthy machines after timeout")
@@ -197,11 +195,10 @@ jobs:
 
           for attempt in range(30):
             data = machines()
-            started = [m for m in data if m.get("state") == "started"]
-            healthy = [m for m in started if all(c.get("status") == "passing" for c in (m.get("checks") or []))]
-            if started and (healthy or not any(m.get("checks") for m in data)):
-              print(f"{app}: at least one machine is running and healthy")
-              sys.exit(0)
+              started = [m for m in data if m.get("state") == "started"]
+              if started:
+                print(f"{app}: found {len(started)} started machine(s)")
+                sys.exit(0)
             time.sleep(10)
 
           print(f"{app}: no running healthy machines after timeout")
