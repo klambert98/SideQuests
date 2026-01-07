@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Package managers
+pnpm-lock.yaml
+.pnpm-store/
+
+# Build
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+.eslintcache
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project
+uploads/
+backend/uploads/
+frontend/.next/
+.env.production
+*.pid
+.vercel/
+.turbo/
+
+# SQL files with credentials (never commit these)
+*.sql
+!*.schema.sql
+create-user.sql
+update-user.sql
+init-schema.sql
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.cache/
+temp/
+tmp/

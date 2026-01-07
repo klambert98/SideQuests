@@ -1,0 +1,58 @@
+# fly.toml app configuration file generated for side-quests-api on 2026-01-05T10:45:18-08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'side-quests-api'
+primary_region = 'ord'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  API_PORT = '3001'
+  NODE_ENV = 'production'
+  PORT = '3001'
+
+[[mounts]]
+  source = 'uploads_data'
+  destination = '/app/uploads'
+  initial_size = '1gb'
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = 'suspend'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 3001
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+  [services.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256

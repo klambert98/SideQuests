@@ -1,0 +1,23 @@
+{
+  "name": "@portfolio/shared",
+  "version": "1.0.0",
+  "description": "Shared constants and configs for personal-portfolio",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./validation": "./dist/validation.js",
+    "./sanitize": "./dist/sanitize.js"
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "Kayla Lambert",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

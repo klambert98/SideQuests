@@ -1,0 +1,17 @@
+{
+  "name": "Side Quests - Personal Portfolio",
+  "short_name": "Side Quests",
+  "description": "A modern personal life portfolio website to share pictures, videos, blog posts, and daily life updates",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f2937",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

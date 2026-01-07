@@ -1,0 +1,104 @@
+name: Fly Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      deploy_api:
+        description: 'Deploy API (Backend)'
+        required: false
+        type: boolean
+        default: true
+      deploy_web:
+        description: 'Deploy Web (Frontend)'
+        required: false
+        type: boolean
+        default: true
+      run_migrations:
+        description: 'Run database migrations'
+        required: false
+        type: boolean
+        default: true
+      run_seeds:
+        description: 'Run database seeds'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.deploy_api == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy API
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_APP: ${{ secrets.FLY_API_APP }}
+        run: |
+          flyctl deploy --app $FLY_API_APP --config backend/fly.toml --remote-only
+
+  run-migrations:
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') &&
+      (github.event_name == 'push' || github.event.inputs.run_migrations == 'true')
+    needs: deploy-backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Run migrations
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_APP: ${{ secrets.FLY_API_APP }}
+        run: |
+          flyctl ssh console -a $FLY_API_APP -C "npm run migrate"
+
+  run-seeds:
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      (needs.run-migrations.result == 'success' || needs.run-migrations.result == 'skipped') &&
+      github.event.inputs.run_seeds == 'true'
+    needs: [deploy-backend, run-migrations]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Run seeds
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_APP: ${{ secrets.FLY_API_APP }}
+        run: |
+          flyctl ssh console -a $FLY_API_APP -C "npm run seed"
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.deploy_web == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy Web
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_WEB_APP: ${{ secrets.FLY_WEB_APP }}
+        run: |
+          flyctl deploy --app $FLY_WEB_APP --config frontend/fly.toml --remote-only
