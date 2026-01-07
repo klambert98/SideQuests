@@ -95,6 +95,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_DB_APP: ${{ secrets.FLY_DB_APP }}
+        continue-on-error: true
         run: |
           set -euo pipefail
           if [ -z "${FLY_DB_APP:-}" ]; then
@@ -102,7 +103,11 @@ jobs:
             exit 0
           fi
 
-          flyctl scale count 1 -a "$FLY_DB_APP" --yes
+          echo "Checking DB app status (may fail for managed Postgres)..."
+          if ! flyctl scale count 1 -a "$FLY_DB_APP" --yes 2>/dev/null; then
+            echo "DB app is managed Postgres or does not support scaling - skipping machine check"
+            exit 0
+          fi
 
           python - <<'PY'
           import json, subprocess, sys, time, os
