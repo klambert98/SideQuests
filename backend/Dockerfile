@@ -1,7 +1,16 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
+
+# Copy shared package
+COPY ../packages/shared/package.json ../packages/shared/
+COPY ../packages/shared/tsconfig.json ../packages/shared/
+COPY ../packages/shared/src ../packages/shared/src
+
+# Install backend dependencies
 COPY package*.json ./
 RUN npm ci
+
+# Build backend
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build

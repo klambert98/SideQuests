@@ -2,6 +2,11 @@ FROM node:18-alpine as base
 
 WORKDIR /app
 
+# Copy shared package
+COPY ../packages/shared/package.json ../packages/shared/
+COPY ../packages/shared/tsconfig.json ../packages/shared/
+COPY ../packages/shared/src ../packages/shared/src
+
 # Install dependencies
 COPY package*.json ./
 RUN npm ci

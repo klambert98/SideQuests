@@ -38,12 +38,11 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy API
-        working-directory: ./backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_API_APP: ${{ secrets.FLY_API_APP }}
         run: |
-          flyctl deploy --app $FLY_API_APP --remote-only
+          flyctl deploy --app $FLY_API_APP --config backend/fly.toml --dockerfile backend/Dockerfile --remote-only
 
   run-migrations:
     runs-on: ubuntu-latest
@@ -98,9 +97,8 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy Web
-        working-directory: ./frontend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_WEB_APP: ${{ secrets.FLY_WEB_APP }}
         run: |
-          flyctl deploy --app $FLY_WEB_APP --remote-only
+          flyctl deploy --app $FLY_WEB_APP --config frontend/fly.toml --dockerfile frontend/Dockerfile --remote-only
