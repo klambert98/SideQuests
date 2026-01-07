@@ -10,7 +10,12 @@ RUN npm ci
 FROM base as builder
 ARG NEXT_PUBLIC_API_URL=https://side-quests-api.fly.dev/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-COPY . .
+COPY next.config.js ./
+COPY tsconfig.json ./
+COPY postcss.config.js ./
+COPY tailwind.config.js ./
+COPY public ./public
+COPY src ./src
 RUN npm run build
 
 # Production image (slim)
