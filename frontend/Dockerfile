@@ -2,14 +2,17 @@ FROM node:18-alpine as base
 
 WORKDIR /app
 
-# Copy shared package
+# Copy and build shared package first
 COPY packages/shared/package.json packages/shared/
 COPY packages/shared/tsconfig.json packages/shared/
 COPY packages/shared/src packages/shared/src
+WORKDIR /app/packages/shared
+RUN npm install && npm run build
 
 # Install dependencies
+WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install --production=false
 
 # Build application
 FROM base as builder
