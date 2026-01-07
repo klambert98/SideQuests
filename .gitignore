@@ -1,9 +1,8 @@
 # Dependencies
 node_modules/
-package-lock.json
-yarn.lock
 
-# Package managers
+# Package managers - keep package-lock.json for Docker builds
+yarn.lock
 pnpm-lock.yaml
 .pnpm-store/
 
