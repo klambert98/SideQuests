@@ -3,24 +3,24 @@ FROM node:18-alpine as base
 WORKDIR /app
 
 # Copy shared package
-COPY ../packages/shared/package.json ../packages/shared/
-COPY ../packages/shared/tsconfig.json ../packages/shared/
-COPY ../packages/shared/src ../packages/shared/src
+COPY packages/shared/package.json packages/shared/
+COPY packages/shared/tsconfig.json packages/shared/
+COPY packages/shared/src packages/shared/src
 
 # Install dependencies
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci
 
 # Build application
 FROM base as builder
 ARG NEXT_PUBLIC_API_URL=https://side-quests-api.fly.dev/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-COPY next.config.js ./
-COPY tsconfig.json ./
-COPY postcss.config.js ./
-COPY tailwind.config.js ./
-COPY public ./public
-COPY src ./src
+COPY frontend/next.config.js ./
+COPY frontend/tsconfig.json ./
+COPY frontend/postcss.config.js ./
+COPY frontend/tailwind.config.js ./
+COPY frontend/public ./public
+COPY frontend/src ./src
 RUN npm run build
 
 # Production image (slim)
