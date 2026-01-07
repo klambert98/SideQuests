@@ -44,6 +44,41 @@ jobs:
         run: |
           flyctl deploy --app $FLY_API_APP --config backend/fly.toml --dockerfile backend/Dockerfile --remote-only
 
+      - name: Ensure API machine is running
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_APP: ${{ secrets.FLY_API_APP }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_API_APP:-}" ]; then
+            echo "FLY_API_APP not set; skipping machine check"
+            exit 1
+          fi
+
+          flyctl scale count 1 -a "$FLY_API_APP"
+
+          python - <<'PY'
+          import json, subprocess, sys, time, os
+
+          app = os.environ["FLY_API_APP"]
+
+          def machines():
+            out = subprocess.check_output(["flyctl", "m", "list", "-a", app, "--json"], text=True)
+            return json.loads(out)
+
+          for attempt in range(30):
+            data = machines()
+            started = [m for m in data if m.get("state") == "started"]
+            healthy = [m for m in started if all(c.get("status") == "passing" for c in (m.get("checks") or []))]
+            if started and (healthy or not any(m.get("checks") for m in data)):
+              print(f"{app}: at least one machine is running and healthy")
+              sys.exit(0)
+            time.sleep(10)
+
+          print(f"{app}: no running healthy machines after timeout")
+          sys.exit(1)
+          PY
+
   run-migrations:
     runs-on: ubuntu-latest
     if: |
@@ -58,12 +93,47 @@ jobs:
       - name: Install flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Ensure DB machine is running (optional)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_DB_APP: ${{ secrets.FLY_DB_APP }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_DB_APP:-}" ]; then
+            echo "FLY_DB_APP not provided; skipping DB machine check"
+            exit 0
+          fi
+
+          flyctl scale count 1 -a "$FLY_DB_APP"
+
+          python - <<'PY'
+          import json, subprocess, sys, time, os
+
+          app = os.environ["FLY_DB_APP"]
+
+          def machines():
+            out = subprocess.check_output(["flyctl", "m", "list", "-a", app, "--json"], text=True)
+            return json.loads(out)
+
+          for attempt in range(30):
+            data = machines()
+            started = [m for m in data if m.get("state") == "started"]
+            healthy = [m for m in started if all(c.get("status") == "passing" for c in (m.get("checks") or []))]
+            if started and (healthy or not any(m.get("checks") for m in data)):
+              print(f"{app}: at least one machine is running and healthy")
+              sys.exit(0)
+            time.sleep(10)
+
+          print(f"{app}: no running healthy machines after timeout")
+          sys.exit(1)
+          PY
+
       - name: Run migrations
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_API_APP: ${{ secrets.FLY_API_APP }}
         run: |
-          flyctl ssh console -a $FLY_API_APP -C "npm run migrate"
+          flyctl ssh console -a $FLY_API_APP -C "npm run migrate:prod"
 
   run-seeds:
     runs-on: ubuntu-latest
@@ -84,7 +154,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_API_APP: ${{ secrets.FLY_API_APP }}
         run: |
-          flyctl ssh console -a $FLY_API_APP -C "npm run seed"
+          flyctl ssh console -a $FLY_API_APP -C "npm run seed:prod"
 
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -102,3 +172,38 @@ jobs:
           FLY_WEB_APP: ${{ secrets.FLY_WEB_APP }}
         run: |
           flyctl deploy --app $FLY_WEB_APP --config frontend/fly.toml --dockerfile frontend/Dockerfile --remote-only
+
+      - name: Ensure Web machine is running
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_WEB_APP: ${{ secrets.FLY_WEB_APP }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_WEB_APP:-}" ]; then
+            echo "FLY_WEB_APP not set; skipping machine check"
+            exit 1
+          fi
+
+          flyctl scale count 1 -a "$FLY_WEB_APP"
+
+          python - <<'PY'
+          import json, subprocess, sys, time, os
+
+          app = os.environ["FLY_WEB_APP"]
+
+          def machines():
+            out = subprocess.check_output(["flyctl", "m", "list", "-a", app, "--json"], text=True)
+            return json.loads(out)
+
+          for attempt in range(30):
+            data = machines()
+            started = [m for m in data if m.get("state") == "started"]
+            healthy = [m for m in started if all(c.get("status") == "passing" for c in (m.get("checks") or []))]
+            if started and (healthy or not any(m.get("checks") for m in data)):
+              print(f"{app}: at least one machine is running and healthy")
+              sys.exit(0)
+            time.sleep(10)
+
+          print(f"{app}: no running healthy machines after timeout")
+          sys.exit(1)
+          PY

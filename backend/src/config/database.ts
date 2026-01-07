@@ -13,7 +13,7 @@ export const AppDataSource = new DataSource({
   synchronize: false, // Disabled to prevent conflicts with manual migrations
   logging: process.env.NODE_ENV === 'development',
   entities: [User, Entry, Media, Embed, Like, Comment, BucketListItem],
-  migrations: ['src/migrations/*.ts'],
+  migrations: [process.env.NODE_ENV === 'production' ? 'dist/migrations/*.js' : 'src/migrations/*.ts'],
   subscribers: [],
   // Connection pooling configuration for scalability
   extra: {
