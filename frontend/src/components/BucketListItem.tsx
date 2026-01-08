@@ -41,6 +41,10 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
   const categoryInputId = `${categoryListId}-input`;
   const subcategoryListId = `subcategory-options-${item.id}`;
   const subcategoryInputId = `${subcategoryListId}-input`;
+  const [useNewCategory, setUseNewCategory] = useState(false);
+  const [newCategoryText, setNewCategoryText] = useState('');
+  const [useNewSubcategory, setUseNewSubcategory] = useState(false);
+  const [newSubcategoryText, setNewSubcategoryText] = useState('');
 
   const handleDelete = () => {
     onRemove?.(item.id);
@@ -57,9 +61,9 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
 
   const handleSave = () => {
     const trimmedTitle = editTitle.trim();
-    const trimmedCategory = editCategory.trim();
+    const trimmedCategory = (useNewCategory ? newCategoryText : editCategory).trim();
     const trimmedDescription = editDescription.trim();
-    const trimmedSubcategory = editSubcategory.trim();
+    const trimmedSubcategory = (useNewSubcategory ? newSubcategoryText : editSubcategory).trim();
 
     if (!trimmedTitle || !trimmedCategory) {
       return;
@@ -72,6 +76,10 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
       subcategory: trimmedSubcategory || undefined,
     });
     setIsEditing(false);
+    setUseNewCategory(false);
+    setNewCategoryText('');
+    setUseNewSubcategory(false);
+    setNewSubcategoryText('');
   };
 
   const handleCancel = () => {
@@ -80,6 +88,10 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
     setEditCategory(item.category);
     setEditSubcategory(item.subcategory || '');
     setIsEditing(false);
+    setUseNewCategory(false);
+    setNewCategoryText('');
+    setUseNewSubcategory(false);
+    setNewSubcategoryText('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -157,41 +169,76 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
                   <label htmlFor={categoryInputId} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                     Category *
                   </label>
-                  <input
+                  <select
                     id={categoryInputId}
-                    list={categoryListId}
-                    value={editCategory}
+                    value={useNewCategory ? '__NEW__' : editCategory}
                     onChange={(e) => {
-                      setEditCategory(e.target.value);
+                      const val = e.target.value;
+                      if (val === '__NEW__') {
+                        setUseNewCategory(true);
+                        setEditCategory('');
+                      } else {
+                        setUseNewCategory(false);
+                        setNewCategoryText('');
+                        setEditCategory(val);
+                      }
                     }}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type to add/select"
-                    className="w-full px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <datalist id={categoryListId}>
-                    {categories.map((category) => (
-                      <option key={category} value={category} />
+                    className="w-full px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {[...categories].sort((a,b)=>a.localeCompare(b)).map((category) => (
+                      <option key={category} value={category}>{category}</option>
                     ))}
-                  </datalist>
+                    <option value="__NEW__">+ Add new category…</option>
+                  </select>
+                  {useNewCategory && (
+                    <input
+                      type="text"
+                      value={newCategoryText}
+                      onChange={(e) => setNewCategoryText(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Enter new category"
+                      className="mt-2 w-full px-3 py-1.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  )}
                 </div>
                 <div>
                   <label htmlFor={subcategoryInputId} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                     Subcategory
                   </label>
-                  <input
+                  <select
                     id={subcategoryInputId}
-                    list={subcategoryListId}
-                    value={editSubcategory}
-                    onChange={(e) => setEditSubcategory(e.target.value)}
+                    value={useNewSubcategory ? '__NEW__' : (editSubcategory || '')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '__NEW__') {
+                        setUseNewSubcategory(true);
+                        setEditSubcategory('');
+                      } else {
+                        setUseNewSubcategory(false);
+                        setNewSubcategoryText('');
+                        setEditSubcategory(val);
+                      }
+                    }}
                     onKeyDown={handleKeyDown}
-                    placeholder="Optional"
-                    className="w-full px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <datalist id={subcategoryListId}>
-                    {availableSubcategories.map((subcat) => (
-                      <option key={subcat} value={subcat} />
+                    className="w-full px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">(none)</option>
+                    {[...availableSubcategories].sort((a,b)=>a.localeCompare(b)).map((subcat) => (
+                      <option key={subcat} value={subcat}>{subcat}</option>
                     ))}
-                  </datalist>
+                    <option value="__NEW__">+ Add new subcategory…</option>
+                  </select>
+                  {useNewSubcategory && (
+                    <input
+                      type="text"
+                      value={newSubcategoryText}
+                      onChange={(e) => setNewSubcategoryText(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Enter new subcategory"
+                      className="mt-2 w-full px-3 py-1.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">

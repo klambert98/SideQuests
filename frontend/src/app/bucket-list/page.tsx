@@ -41,7 +41,20 @@ export default function BucketListPage() {
   const { addToast } = useToast();
   const isAdmin = user?.role === 'admin';
 
-  const categoryOptions = useMemo(() => Object.keys(bucketListData), [bucketListData]);
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    // Include grouped category keys
+    Object.keys(bucketListData).forEach((c) => set.add(c));
+    // Include categories from all items and nested children
+    const collect = (items: BucketListItem[]) => {
+      items.forEach((it) => {
+        if (it.category) set.add(it.category);
+        if (it.children && it.children.length) collect(it.children);
+      });
+    };
+    Object.values(bucketListData).forEach((arr) => collect(arr));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [bucketListData]);
 
   const subcategoriesByCategory = useMemo(() => {
     const map: Record<string, string[]> = {};

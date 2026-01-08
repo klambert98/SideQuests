@@ -35,78 +35,6 @@ type YearGroup = {
   months: MonthGroup[];
 };
 
-const placeholderEntries: TimelineEntry[] = (() => {
-  const items: TimelineEntry[] = [];
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
-  const add = (
-    dateStr: string,
-    title: string,
-    summary: string,
-    meta: Partial<TimelineEntry> = {},
-  ) => {
-    const date = new Date(dateStr);
-    items.push({
-      id: `placeholder-${dateStr}-${items.length}`,
-      title,
-      summary,
-      entryDate: date.toISOString(),
-      dateLabel: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      day: date.toLocaleDateString('en-US', { day: '2-digit' }),
-      year: date.getFullYear().toString(),
-      media: meta.media ?? [],
-      embeds: meta.embeds ?? [],
-      tags: meta.tags ?? [],
-      views: meta.views ?? 42,
-    });
-  };
-
-  // 2026: the five January samples
-  add('2026-01-01', 'New Year Sunrise Hike', 'Kicked off the year with a dawn hike, cold air and golden horizon.', { media: [{ length: 3 }], tags: ['outdoors', 'sunrise'], views: 128 });
-  add('2026-01-02', 'Studio Reset', 'Decluttered the workspace, tuned the monitors, and sketched the Q1 plan.', { media: [{ length: 1 }], tags: ['workflow', 'setup'], views: 94 });
-  add('2026-01-03', 'Coffee with Collaborator', 'Met with a friend to review portfolio goals and swap travel stories.', { embeds: [{ length: 1 }], tags: ['community', 'planning'], views: 76 });
-  add('2026-01-04', 'Rainy Day Edit', 'Stayed in to color-grade last month travel clips with lo-fi tunes.', { media: [{ length: 5 }], tags: ['video', 'rainy-day'], views: 88 });
-  add('2026-01-05', 'Neighborhood Walk', 'Captured street textures and winter light on a slow afternoon loop.', { media: [{ length: 2 }], tags: ['photography', 'city'], views: 65 });
-
-  // 2025: a few entries per month; March and October have 16 entries to demonstrate auto-collapse
-  const heavyMonths: Record<number, number> = { 3: 16, 10: 16 }; // 0-indexed months
-
-  for (let month = 0; month < 12; month += 1) {
-    const count = heavyMonths[month] ?? 3;
-    const monthLabel = monthNames[month];
-
-    for (let i = 1; i <= count; i += 1) {
-      const day = String(((i - 1) % 28) + 1).padStart(2, '0');
-      add(
-        `2025-${String(month + 1).padStart(2, '0')}-${day}`,
-        `${monthLabel} snapshot ${i}`,
-        `Quick note from ${monthLabel} #${i} capturing the mood of the day.`,
-        {
-          media: i % 2 === 0 ? [{ length: (i % 5) + 1 }] : [],
-          embeds: i % 5 === 0 ? [{ length: 1 }] : [],
-          tags: [monthLabel.toLowerCase(), 'daily'],
-          views: 20 + i,
-        },
-      );
-    }
-  }
-
-  return items;
-})();
-
 const normalizeTimeline = (raw: any): TimelineEntry[] => {
   const list: TimelineEntry[] = [];
 
@@ -198,7 +126,7 @@ export default function Home() {
     loadTimeline();
   }, []);
 
-  const entriesToRender = timelineEntries.length > 0 ? timelineEntries : placeholderEntries;
+  const entriesToRender = timelineEntries.length > 0 ? timelineEntries : [];
 
   const groupedTimeline = useMemo(() => groupTimeline(entriesToRender), [entriesToRender]);
 

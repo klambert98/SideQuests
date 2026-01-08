@@ -13,6 +13,10 @@ export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onC
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(categories[0] || '');
   const [subcategory, setSubcategory] = useState('');
+  const [useNewCategory, setUseNewCategory] = useState(false);
+  const [newCategoryText, setNewCategoryText] = useState('');
+  const [useNewSubcategory, setUseNewSubcategory] = useState(false);
+  const [newSubcategoryText, setNewSubcategoryText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -27,15 +31,15 @@ export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onC
     e.preventDefault();
 
     const trimmedTitle = title.trim();
-    const trimmedCategory = selectedCategory.trim();
-    const trimmedSubcategory = subcategory.trim();
+    const effectiveCategory = (useNewCategory ? newCategoryText : selectedCategory).trim();
+    const effectiveSubcategory = (useNewSubcategory ? newSubcategoryText : subcategory).trim();
 
     if (!trimmedTitle) {
       alert('Please enter an item title');
       return;
     }
 
-    if (!trimmedCategory) {
+    if (!effectiveCategory) {
       alert('Please select a category');
       return;
     }
@@ -44,10 +48,14 @@ export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onC
     
     // Simulate API call
     setTimeout(() => {
-      onAdd(trimmedTitle, trimmedCategory, trimmedSubcategory || undefined);
+      onAdd(trimmedTitle, effectiveCategory, effectiveSubcategory || undefined);
       setTitle('');
-      setSelectedCategory(trimmedCategory || categories[0] || '');
+      setSelectedCategory(effectiveCategory || categories[0] || '');
       setSubcategory('');
+      setUseNewCategory(false);
+      setNewCategoryText('');
+      setUseNewSubcategory(false);
+      setNewSubcategoryText('');
       setIsSubmitting(false);
     }, 300);
   };
@@ -79,46 +87,84 @@ export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onC
             <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Category *
             </label>
-            <input
+            <select
               id="category-select"
-              list="category-options"
-              value={selectedCategory}
+              value={useNewCategory ? '__NEW__' : selectedCategory}
               onChange={(e) => {
-                setSelectedCategory(e.target.value);
+                const val = e.target.value;
+                if (val === '__NEW__') {
+                  setUseNewCategory(true);
+                  setSelectedCategory('');
+                } else {
+                  setUseNewCategory(false);
+                  setSelectedCategory(val);
+                }
                 setSubcategory('');
+                setUseNewSubcategory(false);
+                setNewSubcategoryText('');
               }}
-              placeholder="Start typing to add or select a category"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               disabled={isSubmitting}
-            />
-            <datalist id="category-options">
-              {categories.map((category) => (
-                <option key={category} value={category} />
+            >
+              {[...categories].sort((a,b)=>a.localeCompare(b)).map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
               ))}
-            </datalist>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Type to create a new category or pick an existing one.</p>
+              <option value="__NEW__">+ Add new category…</option>
+            </select>
+            {useNewCategory && (
+              <input
+                type="text"
+                value={newCategoryText}
+                onChange={(e) => setNewCategoryText(e.target.value)}
+                placeholder="Enter new category name"
+                className="mt-2 w-full px-4 py-2 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={isSubmitting}
+              />
+            )}
           </div>
 
-          {/* Subcategory Input */}
+          {/* Subcategory Select */}
           <div>
             <label htmlFor="subcategory-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Subcategory (optional)
             </label>
-            <input
+            <select
               id="subcategory-input"
-              list="subcategory-options"
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              placeholder={selectedCategory ? 'Type to add or select a subcategory' : 'Select a category first'}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={isSubmitting || !selectedCategory}
-            />
-            <datalist id="subcategory-options">
-              {availableSubcategories.map((subcat) => (
-                <option key={subcat} value={subcat} />
+              value={useNewSubcategory ? '__NEW__' : (subcategory || '')}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '__NEW__') {
+                  setUseNewSubcategory(true);
+                  setSubcategory('');
+                } else {
+                  setUseNewSubcategory(false);
+                  setNewSubcategoryText('');
+                  setSubcategory(val);
+                }
+              }}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting || !(useNewCategory ? newCategoryText.trim() : selectedCategory)}
+            >
+              <option value="">(none)</option>
+              {[...availableSubcategories].sort((a,b)=>a.localeCompare(b)).map((subcat) => (
+                <option key={subcat} value={subcat}>
+                  {subcat}
+                </option>
               ))}
-            </datalist>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave empty to skip, or type to add a new subcategory.</p>
+              <option value="__NEW__">+ Add new subcategory…</option>
+            </select>
+            {useNewSubcategory && (
+              <input
+                type="text"
+                value={newSubcategoryText}
+                onChange={(e) => setNewSubcategoryText(e.target.value)}
+                placeholder="Enter new subcategory name"
+                className="mt-2 w-full px-4 py-2 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={isSubmitting}
+              />
+            )}
           </div>
 
           {/* Action Buttons */}
