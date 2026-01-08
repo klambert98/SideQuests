@@ -3,7 +3,7 @@ import { AuthRequest, authenticate } from '../middleware/authenticate';
 import { authService } from '../services/AuthService';
 import { LoginDto, RegisterDto, UpdateUserDto } from '../dtos';
 import { validateDto } from '../utils/validation';
-import { authLimiter, interactionLimiter } from '../middleware/rateLimiter';
+import { authLimiter } from '../middleware/rateLimiter';
 
 export const authRoutes = Router();
 

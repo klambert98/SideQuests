@@ -9,12 +9,12 @@ primary_region = 'ord'
 [build]
   dockerfile = 'Dockerfile'
   [build.args]
-    NEXT_PUBLIC_API_URL = 'https://side-quests-api.fly.dev/api'
+    NEXT_PUBLIC_API_URL = 'https://side-quest-api.fly.dev/api'
 
 [env]
   NODE_ENV = 'production'
   PORT = '3000'
-  NEXT_PUBLIC_API_URL = 'https://side-quests-api.fly.dev/api'
+  NEXT_PUBLIC_API_URL = 'https://side-quest-api.fly.dev/api'
 
 [http_service]
   internal_port = 3000

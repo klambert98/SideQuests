@@ -14,7 +14,8 @@ export class Like {
   @Column()
   userId: string;
 
-  @ManyToOne(() => Entry, (entry) => entry.likes, { onDelete: 'CASCADE' })
+  // Link to the correct relation array on Entry: `userLikes`
+  @ManyToOne(() => Entry, (entry) => entry.userLikes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'entryId' })
   entry: Entry;
 

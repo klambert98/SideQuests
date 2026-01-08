@@ -28,6 +28,9 @@ export const generalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Allow read-heavy endpoints like timeline to be accessed freely
+  // We apply specific limiters for write endpoints separately
+  skip: (req: any) => req.method === 'GET',
   keyGenerator: (req: any) => getClientIp(req),
 });
 

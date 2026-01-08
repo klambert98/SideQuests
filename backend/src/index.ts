@@ -13,7 +13,7 @@ import { mediaRoutes } from './routes/media';
 import { embedRoutes } from './routes/embeds';
 import { bucketListRoutes } from './routes/bucketList';
 import { logger } from './services/LoggerService';
-import { generalLimiter, authLimiter } from './middleware/rateLimiter';
+import { generalLimiter } from './middleware/rateLimiter';
 import { validateEnvironmentVariables } from './utils/envValidation';
 
 const app: Express = express();
@@ -102,7 +102,7 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // API Routes
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/embeds', embedRoutes);

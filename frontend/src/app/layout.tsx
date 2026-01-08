@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   ...homeMetadata,
   title: 'My Side Quests',
   description: 'Personal life portfolio - Daily entries, travels, and moments that matter',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export const viewport: Viewport = {
