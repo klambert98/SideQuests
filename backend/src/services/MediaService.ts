@@ -19,6 +19,7 @@ export class MediaService {
   async uploadMedia(file: Express.Multer.File, entryId?: string) {
     const uploadDir = path.join(__dirname, '../../uploads');
     await fs.mkdir(uploadDir, { recursive: true });
+    const originalSanitized = sanitizeFilename(file.originalname);
 
     // Support both memory and disk storage
     let filename: string;
@@ -29,9 +30,8 @@ export class MediaService {
       filepath = file.path;
     } else {
       // Memory storage: write buffer to disk
-      const sanitized = sanitizeFilename(file.originalname);
       const random = randomBytes(8).toString('hex');
-      filename = `${Date.now()}-${random}-${sanitized}`;
+      filename = `${Date.now()}-${random}-${originalSanitized}`;
       filepath = path.join(uploadDir, filename);
       await fs.writeFile(filepath, file.buffer);
     }
@@ -48,9 +48,8 @@ export class MediaService {
 
       // Generate thumbnail
       try {
-        const sanitized = sanitizeFilename(file.originalname);
         const thumbnailRandom = randomBytes(8).toString('hex');
-        const thumbnailFilename = `thumb-${Date.now()}-${thumbnailRandom}-${sanitized}`;
+        const thumbnailFilename = `thumb-${Date.now()}-${thumbnailRandom}-${originalSanitized}`;
         const thumbnailPath = path.join(uploadDir, thumbnailFilename);
         await sharp(filepath).resize(200, 200, { fit: 'cover' }).toFile(thumbnailPath);
         thumbnailUrl = `/uploads/${thumbnailFilename}`;
@@ -68,7 +67,7 @@ export class MediaService {
 
     const media = new Media();
     media.filename = filename;
-    media.originalName = sanitized;
+    media.originalName = originalSanitized;
     media.mimetype = file.mimetype;
     media.type = type;
     media.size = file.size;
