@@ -44,10 +44,9 @@ frontend/.next/
 
 # SQL files with credentials (never commit these)
 *.sql
-!*.schema.sql
+!deploy/database/**/*.sql
 create-user.sql
 update-user.sql
-init-schema.sql
 
 # Testing
 coverage/
