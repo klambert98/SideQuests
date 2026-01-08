@@ -1,27 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type BucketListFormProps = {
   categories: string[];
-  onAdd: (title: string, category: string) => void;
+  subcategoriesByCategory: Record<string, string[]>;
+  onAdd: (title: string, category: string, subcategory?: string) => void;
   onCancel: () => void;
 };
 
-export function BucketListForm({ categories, onAdd, onCancel }: BucketListFormProps) {
+export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onCancel }: BucketListFormProps) {
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(categories[0] || '');
+  const [subcategory, setSubcategory] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!selectedCategory && categories.length > 0) {
+      setSelectedCategory(categories[0]);
+    }
+  }, [categories, selectedCategory]);
+
+  const availableSubcategories = subcategoriesByCategory[selectedCategory] || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!title.trim()) {
+
+    const trimmedTitle = title.trim();
+    const trimmedCategory = selectedCategory.trim();
+    const trimmedSubcategory = subcategory.trim();
+
+    if (!trimmedTitle) {
       alert('Please enter an item title');
       return;
     }
 
-    if (!selectedCategory) {
+    if (!trimmedCategory) {
       alert('Please select a category');
       return;
     }
@@ -30,9 +44,10 @@ export function BucketListForm({ categories, onAdd, onCancel }: BucketListFormPr
     
     // Simulate API call
     setTimeout(() => {
-      onAdd(title.trim(), selectedCategory);
+      onAdd(trimmedTitle, trimmedCategory, trimmedSubcategory || undefined);
       setTitle('');
-      setSelectedCategory(categories[0] || '');
+      setSelectedCategory(trimmedCategory || categories[0] || '');
+      setSubcategory('');
       setIsSubmitting(false);
     }, 300);
   };
@@ -64,19 +79,46 @@ export function BucketListForm({ categories, onAdd, onCancel }: BucketListFormPr
             <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Category *
             </label>
-            <select
+            <input
               id="category-select"
+              list="category-options"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setSubcategory('');
+              }}
+              placeholder="Start typing to add or select a category"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               disabled={isSubmitting}
-            >
+            />
+            <datalist id="category-options">
               {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
+                <option key={category} value={category} />
               ))}
-            </select>
+            </datalist>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Type to create a new category or pick an existing one.</p>
+          </div>
+
+          {/* Subcategory Input */}
+          <div>
+            <label htmlFor="subcategory-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Subcategory (optional)
+            </label>
+            <input
+              id="subcategory-input"
+              list="subcategory-options"
+              value={subcategory}
+              onChange={(e) => setSubcategory(e.target.value)}
+              placeholder={selectedCategory ? 'Type to add or select a subcategory' : 'Select a category first'}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting || !selectedCategory}
+            />
+            <datalist id="subcategory-options">
+              {availableSubcategories.map((subcat) => (
+                <option key={subcat} value={subcat} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave empty to skip, or type to add a new subcategory.</p>
           </div>
 
           {/* Action Buttons */}

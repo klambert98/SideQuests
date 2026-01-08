@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { BucketListItem } from '@/app/bucket-list/page';
 import { BucketListItemComponent } from './BucketListItem';
 
+type BucketListUpdateInput = {
+  title: string;
+  description?: string;
+  category: string;
+  subcategory?: string;
+};
+
 type BucketListGroupProps = {
   category: string;
   items: BucketListItem[];
@@ -9,9 +16,11 @@ type BucketListGroupProps = {
   onToggleExpand: () => void;
   onToggleItem: (itemId: string) => void;
   onRemoveItem: (itemId: string) => void;
-  onUpdateItem: (itemId: string, title: string, description?: string) => void;
+  onUpdateItem: (itemId: string, updates: BucketListUpdateInput) => void;
   onReorderItems: (itemIds: string[]) => void;
   onAddChild?: (parentId: string, title: string) => void;
+  allCategories: string[];
+  subcategoriesByCategory: Record<string, string[]>;
   isAdmin: boolean;
 };
 
@@ -25,6 +34,8 @@ export function BucketListGroup({
   onUpdateItem,
   onReorderItems,
   onAddChild,
+  allCategories,
+  subcategoriesByCategory,
   isAdmin,
 }: BucketListGroupProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -178,6 +189,8 @@ export function BucketListGroup({
                             onRemove={onRemoveItem}
                             onUpdate={onUpdateItem}
                             onAddChild={onAddChild}
+                            categories={allCategories}
+                            subcategoriesByCategory={subcategoriesByCategory}
                             isAdmin={isAdmin}
                           />
                         </div>

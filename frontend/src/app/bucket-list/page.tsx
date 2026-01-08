@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
@@ -22,6 +22,13 @@ export type BucketListItem = {
   children?: BucketListItem[];
 };
 
+type BucketListUpdatePayload = {
+  title: string;
+  description?: string;
+  category: string;
+  subcategory?: string;
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export default function BucketListPage() {
@@ -33,6 +40,31 @@ export default function BucketListPage() {
   const { user, isAuthenticated, token } = useAuth();
   const { addToast } = useToast();
   const isAdmin = user?.role === 'admin';
+
+  const categoryOptions = useMemo(() => Object.keys(bucketListData), [bucketListData]);
+
+  const subcategoriesByCategory = useMemo(() => {
+    const map: Record<string, string[]> = {};
+
+    const collectSubcategories = (items: BucketListItem[], set: Set<string>) => {
+      items.forEach((item) => {
+        if (item.subcategory) {
+          set.add(item.subcategory);
+        }
+        if (item.children && item.children.length > 0) {
+          collectSubcategories(item.children, set);
+        }
+      });
+    };
+
+    Object.entries(bucketListData).forEach(([category, items]) => {
+      const bucketSubcategories = new Set<string>();
+      collectSubcategories(items, bucketSubcategories);
+      map[category] = Array.from(bucketSubcategories).sort((a, b) => a.localeCompare(b));
+    });
+
+    return map;
+  }, [bucketListData]);
 
   // Fetch bucket list items from API
   useEffect(() => {
@@ -171,8 +203,24 @@ export default function BucketListPage() {
     }
   };
 
-  const updateItem = async (itemId: string, category: string, title: string, description?: string) => {
+  const updateItem = async (
+    itemId: string,
+    category: string,
+    updates: BucketListUpdatePayload,
+  ) => {
     if (!token) return;
+
+    const normalizedPayload: BucketListUpdatePayload = {
+      title: updates.title.trim(),
+      description: updates.description?.trim() || undefined,
+      category: updates.category.trim(),
+      subcategory: updates.subcategory?.trim() || undefined,
+    };
+
+    if (!normalizedPayload.title || !normalizedPayload.category) {
+      addToast('Title and category are required', 'error');
+      return;
+    }
 
     try {
       const response = await fetch(`${API_URL}/bucket-list/${itemId}`, {
@@ -181,7 +229,7 @@ export default function BucketListPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify(normalizedPayload),
       });
 
       if (!response.ok) {
@@ -190,23 +238,64 @@ export default function BucketListPage() {
 
       const updatedItem = await response.json();
 
-      // Update local state recursively
-      const updateItemRecursively = (items: BucketListItem[]): BucketListItem[] => {
-        return items.map(i => {
-          if (i.id === itemId) {
-            return { ...updatedItem, children: i.children };
-          }
-          if (i.children) {
-            return { ...i, children: updateItemRecursively(i.children) };
-          }
-          return i;
-        });
-      };
+      setBucketListData((prev) => {
+        const sourceItems = prev[category] || [];
+        let movedTopLevel: BucketListItem | null = null;
 
-      setBucketListData((prev) => ({
-        ...prev,
-        [category]: updateItemRecursively(prev[category] || []),
-      }));
+        const updateRecursively = (items: BucketListItem[]): BucketListItem[] => {
+          return items
+            .map((item) => {
+              if (item.id === itemId) {
+                const mergedItem: BucketListItem = {
+                  ...item,
+                  ...updatedItem,
+                  children: item.children,
+                };
+
+                // Only move top-level items across categories
+                if (!mergedItem.parentId && mergedItem.category !== category) {
+                  movedTopLevel = mergedItem;
+                  return null;
+                }
+
+                return mergedItem;
+              }
+
+              if (item.children && item.children.length > 0) {
+                const updatedChildren = updateRecursively(item.children);
+                if (updatedChildren !== item.children) {
+                  return { ...item, children: updatedChildren };
+                }
+              }
+
+              return item;
+            })
+            .filter((item): item is BucketListItem => Boolean(item));
+        };
+
+        const updatedSourceItems = updateRecursively(sourceItems);
+
+        let nextState: Record<string, BucketListItem[]> = {
+          ...prev,
+          [category]: updatedSourceItems,
+        };
+
+        if (movedTopLevel) {
+          const destinationCategory = normalizedPayload.category;
+          const destinationItems = prev[destinationCategory] || [];
+          nextState = {
+            ...nextState,
+            [destinationCategory]: [...destinationItems, movedTopLevel],
+          };
+        }
+
+        return nextState;
+      });
+
+      if (normalizedPayload.category !== category) {
+        setExpandedCategories((prev) => ({ ...prev, [normalizedPayload.category]: true }));
+      }
+
       addToast('Item updated successfully', 'success');
     } catch (err) {
       addToast(
@@ -254,8 +343,22 @@ export default function BucketListPage() {
     }
   };
 
-  const addItem = async (title: string, category: string, parentId?: string) => {
+  const addItem = async (title: string, category: string, subcategory?: string, parentId?: string) => {
     if (!token) return;
+
+    const trimmedTitle = title.trim();
+    const normalizedCategory = category.trim();
+    const normalizedSubcategory = subcategory?.trim() || undefined;
+
+    if (!trimmedTitle) {
+      addToast('Please provide a title for the item', 'error');
+      return;
+    }
+
+    if (!normalizedCategory) {
+      addToast('Please provide a category for the item', 'error');
+      return;
+    }
 
     try {
       const response = await fetch(`${API_URL}/bucket-list`, {
@@ -264,7 +367,7 @@ export default function BucketListPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title, category, parentId, completed: false }),
+        body: JSON.stringify({ title: trimmedTitle, category: normalizedCategory, subcategory: normalizedSubcategory, parentId, completed: false }),
       });
 
       if (!response.ok) {
@@ -289,14 +392,15 @@ export default function BucketListPage() {
 
         setBucketListData((prev) => ({
           ...prev,
-          [category]: addChildRecursively(prev[category] || []),
+          [normalizedCategory]: addChildRecursively(prev[normalizedCategory] || []),
         }));
       } else {
         // Add as top-level item
         setBucketListData((prev) => ({
           ...prev,
-          [category]: [...(prev[category] || []), newItem],
+          [normalizedCategory]: [...(prev[normalizedCategory] || []), newItem],
         }));
+        setExpandedCategories((prev) => ({ ...prev, [normalizedCategory]: true }));
       }
 
       setShowAddForm(false);
@@ -418,7 +522,8 @@ export default function BucketListPage() {
       {/* Add New Item Form */}
       {showAddForm && isAdmin && !isLoading && (
         <BucketListForm
-          categories={Object.keys(bucketListData)}
+          categories={categoryOptions}
+          subcategoriesByCategory={subcategoriesByCategory}
           onAdd={addItem}
           onCancel={() => setShowAddForm(false)}
         />
@@ -448,9 +553,11 @@ export default function BucketListPage() {
                 onToggleExpand={() => toggleCategory(category)}
                 onToggleItem={(itemId: string) => toggleItemCompletion(itemId, category)}
                 onRemoveItem={(itemId: string) => removeItem(itemId, category)}
-                onUpdateItem={(itemId: string, title: string, description?: string) => updateItem(itemId, category, title, description)}
+                onUpdateItem={(itemId: string, updates: BucketListUpdatePayload) => updateItem(itemId, category, updates)}
                 onReorderItems={(itemIds: string[]) => reorderItems(category, itemIds)}
-                onAddChild={(parentId: string, title: string) => addItem(title, category, parentId)}
+                onAddChild={(parentId: string, title: string) => addItem(title, category, undefined, parentId)}
+                allCategories={categoryOptions}
+                subcategoriesByCategory={subcategoriesByCategory}
                 isAdmin={isAdmin}
               />
             ))}

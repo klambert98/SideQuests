@@ -19,18 +19,28 @@ type BucketListItemProps = {
   item: BucketListItem;
   onToggle?: (id: string) => void;
   onRemove?: (id: string) => void;
-  onUpdate?: (id: string, title: string, description?: string) => void;
+  onUpdate?: (id: string, updates: { title: string; description?: string; category: string; subcategory?: string }) => void;
   onAddChild?: (parentId: string, title: string) => void;
+  categories: string[];
+  subcategoriesByCategory: Record<string, string[]>;
   isAdmin?: boolean;
 };
 
-export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, onAddChild, isAdmin = false }: BucketListItemProps) {
+export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, onAddChild, categories, subcategoriesByCategory, isAdmin = false }: BucketListItemProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(item.title);
   const [editDescription, setEditDescription] = useState(item.description || '');
+  const [editCategory, setEditCategory] = useState(item.category);
+  const [editSubcategory, setEditSubcategory] = useState(item.subcategory || '');
   const [isAddingChild, setIsAddingChild] = useState(false);
   const [newChildTitle, setNewChildTitle] = useState('');
+
+  const availableSubcategories = subcategoriesByCategory[editCategory] || [];
+  const categoryListId = `category-options-${item.id}`;
+  const categoryInputId = `${categoryListId}-input`;
+  const subcategoryListId = `subcategory-options-${item.id}`;
+  const subcategoryInputId = `${subcategoryListId}-input`;
 
   const handleDelete = () => {
     onRemove?.(item.id);
@@ -40,19 +50,35 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
   const handleEdit = () => {
     setEditTitle(item.title);
     setEditDescription(item.description || '');
+    setEditCategory(item.category);
+    setEditSubcategory(item.subcategory || '');
     setIsEditing(true);
   };
 
   const handleSave = () => {
-    if (editTitle.trim()) {
-      onUpdate?.(item.id, editTitle.trim(), editDescription.trim() || undefined);
-      setIsEditing(false);
+    const trimmedTitle = editTitle.trim();
+    const trimmedCategory = editCategory.trim();
+    const trimmedDescription = editDescription.trim();
+    const trimmedSubcategory = editSubcategory.trim();
+
+    if (!trimmedTitle || !trimmedCategory) {
+      return;
     }
+
+    onUpdate?.(item.id, {
+      title: trimmedTitle,
+      description: trimmedDescription || undefined,
+      category: trimmedCategory,
+      subcategory: trimmedSubcategory || undefined,
+    });
+    setIsEditing(false);
   };
 
   const handleCancel = () => {
     setEditTitle(item.title);
     setEditDescription(item.description || '');
+    setEditCategory(item.category);
+    setEditSubcategory(item.subcategory || '');
     setIsEditing(false);
   };
 
@@ -126,6 +152,48 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
                 placeholder="Description (optional)"
                 rows={2}
               />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor={categoryInputId} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Category *
+                  </label>
+                  <input
+                    id={categoryInputId}
+                    list={categoryListId}
+                    value={editCategory}
+                    onChange={(e) => {
+                      setEditCategory(e.target.value);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type to add/select"
+                    className="w-full px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <datalist id={categoryListId}>
+                    {categories.map((category) => (
+                      <option key={category} value={category} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label htmlFor={subcategoryInputId} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Subcategory
+                  </label>
+                  <input
+                    id={subcategoryInputId}
+                    list={subcategoryListId}
+                    value={editSubcategory}
+                    onChange={(e) => setEditSubcategory(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Optional"
+                    className="w-full px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <datalist id={subcategoryListId}>
+                    {availableSubcategories.map((subcat) => (
+                      <option key={subcat} value={subcat} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
@@ -277,6 +345,8 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
               onRemove={onRemove}
               onUpdate={onUpdate}
               onAddChild={onAddChild}
+              categories={categories}
+              subcategoriesByCategory={subcategoriesByCategory}
               isAdmin={isAdmin}
             />
           ))}
