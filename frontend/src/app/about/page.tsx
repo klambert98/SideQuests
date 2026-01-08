@@ -4,6 +4,7 @@ import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { ContentSection } from '@/components/ContentSection';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Note: Metadata must be exported from a server component or layout file
 // This is a client component due to Navigation, so metadata should go in layout.tsx
@@ -16,13 +17,16 @@ export default function AboutPage() {
       {/* About Section */}
       <ContentSection maxWidth="max-w-4xl">
         <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-12 items-start">
-          {/* Profile Image Placeholder */}
+          {/* Profile Image */}
           <div className="flex flex-col items-center md:items-start">
-            <div className="w-64 h-64 md:w-full md:h-auto md:aspect-square rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 border-4 border-white dark:border-gray-800 shadow-xl flex items-center justify-center">
-              <div className="text-center p-6">
-                <div className="text-6xl mb-3">📸</div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Your selfie goes here</p>
-              </div>
+            <div className="relative w-64 h-64 md:w-full md:h-auto md:aspect-square rounded-2xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl">
+              <Image 
+                src="/profile.jpg" 
+                alt="Profile picture"
+                fill
+                className="object-cover"
+                priority
+              />
             </div>
           </div>
 
