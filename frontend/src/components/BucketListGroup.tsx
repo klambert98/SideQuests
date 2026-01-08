@@ -41,9 +41,23 @@ export function BucketListGroup({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
-  const categoryCompleted = items.filter((item) => item.completed).length;
-  const categoryTotal = items.length;
-  const categoryPercentage = Math.round((categoryCompleted / categoryTotal) * 100);
+  // Calculate category progress with parent items contributing their child completion percentage
+  const { completedWeight, totalWeight } = items.reduce((acc, item) => {
+    if (item.children && item.children.length > 0) {
+      // Parent item: count based on child completion percentage
+      const childrenCompleted = item.children.filter((c) => c.completed).length;
+      const childrenTotal = item.children.length;
+      acc.totalWeight += 1;
+      acc.completedWeight += childrenCompleted / childrenTotal;
+    } else {
+      // Leaf item without children: count as 0 or 1
+      acc.totalWeight += 1;
+      acc.completedWeight += item.completed ? 1 : 0;
+    }
+    return acc;
+  }, { completedWeight: 0, totalWeight: 0 });
+
+  const categoryPercentage = totalWeight === 0 ? 0 : Math.round((completedWeight / totalWeight) * 100);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     if (!isAdmin) return;
@@ -101,7 +115,7 @@ export function BucketListGroup({
             {category}
           </h2>
           <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {categoryCompleted} / {categoryTotal} ({categoryPercentage}%)
+            {completedWeight.toFixed(1)} / {totalWeight} ({categoryPercentage}%)
           </span>
         </div>
         <svg
