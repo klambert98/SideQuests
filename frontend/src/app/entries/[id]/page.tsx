@@ -12,6 +12,7 @@ import { EmbedPreview } from '@/components/EmbedPreview';
 import { CommentListSkeleton } from '@/components/CommentSkeleton';
 import { SkeletonLine, SkeletonLoader } from '@/components/SkeletonLoader';
 import Link from 'next/link';
+import { parseLocalDate, formatFullDate } from '@/lib/dates';
 
 type Comment = {
   id: string;
@@ -287,12 +288,8 @@ export default function EntryDetailPage() {
     );
   }
 
-  const entryDate = new Date(entry.entryDate);
-  const formattedDate = entryDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const entryDate = parseLocalDate(entry.entryDate);
+  const formattedDate = formatFullDate(entryDate);
 
   return (
     <PageLayout showNavigation={false}>

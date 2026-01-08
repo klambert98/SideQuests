@@ -17,7 +17,7 @@ primary_region = 'ord'
 [[mounts]]
   source = 'uploads_data'
   destination = '/app/uploads'
-  initial_size = '1gb'
+  initial_size = '100gb'
 
 [http_service]
   internal_port = 3001
@@ -53,6 +53,6 @@ primary_region = 'ord'
     soft_limit = 20
 
 [[vm]]
-  memory = '256mb'
-  cpus = 1
-  memory_mb = 256
+  memory = '2gb'
+  cpus = 2
+  memory_mb = 2048

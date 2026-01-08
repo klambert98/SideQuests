@@ -16,7 +16,7 @@ RUN npm install --production=false
 
 # Build application
 FROM base as builder
-ARG NEXT_PUBLIC_API_URL=https://side-quests-api.fly.dev/api
+ARG NEXT_PUBLIC_API_URL=https://side-quest-api.fly.dev/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 COPY frontend/next.config.js ./
 COPY frontend/tsconfig.json ./

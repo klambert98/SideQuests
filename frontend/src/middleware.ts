@@ -21,14 +21,15 @@ export function middleware(request: NextRequest) {
   const api = new URL(apiUrl);
   const apiBase = `${api.protocol}//${api.host}`;
 
+  const flyWildcard = 'https://*.fly.dev';
   const cspHeader = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: ${apiBase}`,
+    `img-src 'self' data: blob: ${apiBase} ${flyWildcard}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${apiBase}`,
-    `media-src 'self' ${apiBase}`,
+    `connect-src 'self' ${apiBase} ${flyWildcard}`,
+    `media-src 'self' ${apiBase} ${flyWildcard}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

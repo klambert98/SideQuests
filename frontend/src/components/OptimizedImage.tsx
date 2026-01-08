@@ -72,6 +72,8 @@ export function OptimizedImage({
       priority={priority}
       className={className}
       quality={quality}
+      // Bypass Next.js optimizer for absolute remote URLs to avoid 400s
+      unoptimized={/^https?:\/\//.test(src)}
       onError={() => setError(true)}
       onLoad={onLoad}
       placeholder="blur"

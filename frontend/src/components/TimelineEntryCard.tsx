@@ -4,15 +4,16 @@ import Link from 'next/link';
 import { Entry } from '@/types';
 import { getMediaUrl } from '@/lib/api';
 import { OptimizedImage } from './OptimizedImage';
+import { parseLocalDate, formatDay, formatMonthDay } from '@/lib/dates';
 
 type TimelineEntryCardProps = {
   entry: Entry;
 };
 
 export function TimelineEntryCard({ entry }: TimelineEntryCardProps) {
-  const date = new Date(entry.entryDate);
-  const day = date.toLocaleDateString('en-US', { day: '2-digit' });
-  const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const date = parseLocalDate(entry.entryDate);
+  const day = formatDay(date);
+  const dateLabel = formatMonthDay(date);
 
   // Get the first media item (prefer images/videos)
   const firstMedia = entry.media && entry.media.length > 0 ? entry.media[0] : null;

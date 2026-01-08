@@ -16,6 +16,18 @@ const nextConfig = {
         port: api.port || undefined,
         pathname: '/uploads/**',
       },
+      // Fallback: explicitly allow Fly.io API host for uploads
+      {
+        protocol: 'https',
+        hostname: 'side-quest-api.fly.dev',
+        pathname: '/uploads/**',
+      },
+      // Backward-compat: allow legacy host variant if present
+      {
+        protocol: 'https',
+        hostname: 'side-quests-api.fly.dev',
+        pathname: '/uploads/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     unoptimized: false,

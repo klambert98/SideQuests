@@ -9,6 +9,7 @@ import type { Entry } from '@/types';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
 import { validateEntry } from '@/lib/validation';
+import { parseLocalDate } from '@/lib/dates';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -309,7 +310,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
-                  {new Date(entry.entryDate).toLocaleDateString()}
+                  {parseLocalDate(entry.entryDate).toLocaleDateString()}
                 </p>
                 {entry.summary && (
                   <p className="text-gray-700 dark:text-gray-300 mb-4">

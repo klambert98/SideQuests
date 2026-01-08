@@ -20,15 +20,23 @@ export class MediaService {
     const uploadDir = path.join(__dirname, '../../uploads');
     await fs.mkdir(uploadDir, { recursive: true });
 
-    // Generate secure filename with random bytes
-    const sanitized = sanitizeFilename(file.originalname);
-    const random = randomBytes(8).toString('hex');
-    const filename = `${Date.now()}-${random}-${sanitized}`;
-    const filepath = path.join(uploadDir, filename);
-    const url = `/uploads/${filename}`;
+    // Support both memory and disk storage
+    let filename: string;
+    let filepath: string;
+    if (file.path) {
+      // Multer diskStorage already saved the file
+      filename = path.basename(file.path);
+      filepath = file.path;
+    } else {
+      // Memory storage: write buffer to disk
+      const sanitized = sanitizeFilename(file.originalname);
+      const random = randomBytes(8).toString('hex');
+      filename = `${Date.now()}-${random}-${sanitized}`;
+      filepath = path.join(uploadDir, filename);
+      await fs.writeFile(filepath, file.buffer);
+    }
 
-    // Save file
-    await fs.writeFile(filepath, file.buffer);
+    const url = `/uploads/${filename}`;
 
     let type = MediaType.DOCUMENT;
     let thumbnailUrl: string | null = null;
@@ -40,6 +48,7 @@ export class MediaService {
 
       // Generate thumbnail
       try {
+        const sanitized = sanitizeFilename(file.originalname);
         const thumbnailRandom = randomBytes(8).toString('hex');
         const thumbnailFilename = `thumb-${Date.now()}-${thumbnailRandom}-${sanitized}`;
         const thumbnailPath = path.join(uploadDir, thumbnailFilename);

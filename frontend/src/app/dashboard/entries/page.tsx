@@ -9,6 +9,7 @@ import { PageLayout } from '@/components/PageLayout';
 import { EntryListSkeleton } from '@/components/EntrySkeleton';
 import type { Entry } from '@/types';
 import Link from 'next/link';
+import { parseLocalDate } from '@/lib/dates';
 
 function EntriesContent() {
   const router = useRouter();
@@ -426,7 +427,7 @@ function EntriesContent() {
                             {entry.status}
                           </span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {new Date(entry.entryDate).toLocaleDateString()}
+                            {parseLocalDate(entry.entryDate).toLocaleDateString()}
                           </span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             👁️ {entry.views || 0} views

@@ -2,15 +2,36 @@ import { Router, Response } from 'express';
 import { AuthRequest, authenticate } from '../middleware/authenticate';
 import { mediaService } from '../services/MediaService';
 import multer from 'multer';
+import path from 'path';
+import * as fs from 'fs/promises';
 import { interactionLimiter } from '../middleware/rateLimiter';
 
-// Configure multer with security limits
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max
+// Configure multer with disk storage to avoid large in-memory buffers
+const uploadDir = path.join(__dirname, '../../uploads');
+const storage = multer.diskStorage({
+  destination: async (_req, _file, cb) => {
+    try {
+      await fs.mkdir(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (err: any) {
+      cb(err, uploadDir);
+    }
   },
-  fileFilter: (req, file, cb) => {
+  filename: (_req, file, cb) => {
+    // Keep original name sanitized and prefix with timestamp to avoid collisions
+    const base = file.originalname.replace(/[^a-z0-9.-]/gi, '_');
+    const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    cb(null, `${unique}-${base}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    // Allow larger uploads; disk storage avoids memory pressure
+    fileSize: 200 * 1024 * 1024, // 200MB max
+  },
+  fileFilter: (_req, file, cb) => {
     // Allowed MIME types
     const allowedMimes = [
       'image/jpeg',

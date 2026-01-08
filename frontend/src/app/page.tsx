@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { parseLocalDate, formatMonthDay, formatDay } from '@/lib/dates';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/Button';
@@ -43,12 +44,12 @@ const normalizeTimeline = (raw: any): TimelineEntry[] => {
       const safeEntries = Array.isArray(entries) ? entries : [];
 
       safeEntries.forEach((entry: any) => {
-        const date = new Date(entry.entryDate || entry.date || `${year}-${month}-01`);
+        const date = parseLocalDate(entry.entryDate || entry.date || `${year}-${month}-01`);
 
         list.push({
           ...entry,
-          dateLabel: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          day: date.toLocaleDateString('en-US', { day: '2-digit' }),
+          dateLabel: formatMonthDay(date),
+          day: formatDay(date),
           year: date.getFullYear().toString(),
           entryDate: date.toISOString(),
         });
@@ -57,7 +58,7 @@ const normalizeTimeline = (raw: any): TimelineEntry[] => {
   });
 
   return list.sort(
-    (a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime(),
+    (a, b) => parseLocalDate(b.entryDate).getTime() - parseLocalDate(a.entryDate).getTime(),
   );
 };
 
@@ -65,7 +66,7 @@ const groupTimeline = (entries: TimelineEntry[]): YearGroup[] => {
   const byYear: Record<string, YearGroup> = {};
 
   entries.forEach((entry) => {
-    const date = new Date(entry.entryDate);
+    const date = parseLocalDate(entry.entryDate);
     const year = date.getFullYear().toString();
     const monthNumber = date.getMonth();
     const monthKey = `${year}-${monthNumber + 1}`;
@@ -93,7 +94,7 @@ const groupTimeline = (entries: TimelineEntry[]): YearGroup[] => {
         .map((m) => ({
           ...m,
           entries: [...m.entries].sort(
-            (a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime(),
+            (a, b) => parseLocalDate(b.entryDate).getTime() - parseLocalDate(a.entryDate).getTime(),
           ),
         }))
         .sort((a, b) => b.monthNumber - a.monthNumber),
