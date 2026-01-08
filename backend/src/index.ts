@@ -65,7 +65,13 @@ app.use(cors({
 }));
 
 // Security middleware
-app.use(helmet());
+// Allow cross-origin resource loading for uploads by relaxing CORP
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // Global rate limiter
 app.use(generalLimiter);
@@ -94,7 +100,16 @@ app.use((req, res, next) => {
 });
 
 // Serve uploaded files as static
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serve uploaded files as static with caching and range support for videos
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '../uploads'), {
+    cacheControl: true,
+    maxAge: '365d',
+    immutable: true,
+    acceptRanges: true,
+  })
+);
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
