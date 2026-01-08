@@ -35,6 +35,7 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
   const [editSubcategory, setEditSubcategory] = useState(item.subcategory || '');
   const [isAddingChild, setIsAddingChild] = useState(false);
   const [newChildTitle, setNewChildTitle] = useState('');
+  const [childrenExpanded, setChildrenExpanded] = useState(false);
 
   const availableSubcategories = subcategoriesByCategory[editCategory] || [];
   const categoryListId = `category-options-${item.id}`;
@@ -273,13 +274,32 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
               {/* Progress bar for parent items with children */}
               {item.children && item.children.length > 0 && (
                 <div className="mt-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                      {item.children.filter((c) => c.completed).length} / {item.children.length} completed
-                    </span>
-                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                      ({Math.round((item.children.filter((c) => c.completed).length / item.children.length) * 100)}%)
-                    </span>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {item.children.filter((c) => c.completed).length} / {item.children.length} completed
+                      </span>
+                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                        ({Math.round((item.children.filter((c) => c.completed).length / item.children.length) * 100)}%)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChildrenExpanded((prev) => !prev)}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                      aria-expanded={childrenExpanded}
+                      aria-controls={`children-${item.id}`}
+                    >
+                      <svg
+                        className={`w-3.5 h-3.5 transition-transform ${childrenExpanded ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      {childrenExpanded ? 'Collapse' : 'Expand'}
+                    </button>
                   </div>
                   <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
@@ -382,8 +402,8 @@ export function BucketListItemComponent({ item, onToggle, onRemove, onUpdate, on
       )}
 
       {/* Child Items (Sub-list) */}
-      {item.children && item.children.length > 0 && (
-        <div className="ml-12 mt-2 space-y-1.5">
+      {item.children && item.children.length > 0 && childrenExpanded && (
+        <div id={`children-${item.id}`} className="ml-12 mt-2 space-y-1.5">
           {item.children.map((child) => (
             <BucketListItemComponent
               key={child.id}
