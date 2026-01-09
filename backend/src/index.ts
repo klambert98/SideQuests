@@ -137,10 +137,18 @@ const startServer = async () => {
     await AppDataSource.initialize();
     logger.info('Database connected');
 
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`Server running on http://0.0.0.0:${PORT}`);
       logger.info(`API available at http://0.0.0.0:${PORT}/api`);
     });
+    // Increase timeouts to better support large, slow uploads
+    // Disable overall request timeout; keep generous header timeout
+    // to avoid proxy aborts during long body streams.
+    // Node 18 defaults can be aggressive for large uploads.
+    // @ts-ignore
+    server.requestTimeout = 0; // no limit
+    // @ts-ignore
+    server.headersTimeout = 120000; // 120s
   } catch (error) {
     logger.error('Failed to start server', error);
     process.exit(1);

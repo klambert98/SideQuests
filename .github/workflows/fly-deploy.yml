@@ -19,7 +19,7 @@ on:
         description: 'Run database migrations'
         required: false
         type: boolean
-        default: true
+        default: false
       run_seeds:
         description: 'Run database seeds'
         required: false

@@ -200,6 +200,30 @@ export const api = {
       });
     },
 
+    uploadWithProgress: async (
+      token: string,
+      file: File,
+      entryId: string | undefined,
+      onProgress?: (percent: number) => void,
+    ) => {
+      const { default: axios } = await import('axios');
+      const formData = new FormData();
+      formData.append('file', file);
+      if (entryId) formData.append('entryId', entryId);
+      const res = await axios.post(`${API_URL}/media/upload`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+        onUploadProgress: (evt: any) => {
+          try {
+            if (evt.total) {
+              const percent = Math.round((evt.loaded / evt.total) * 100);
+              onProgress?.(percent);
+            }
+          } catch {}
+        },
+      });
+      return res.data;
+    },
+
     getByEntry: (entryId: string) =>
       apiFetch(`${API_URL}/media/entry/${entryId}`),
 

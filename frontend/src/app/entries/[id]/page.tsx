@@ -153,10 +153,17 @@ export default function EntryDetailPage() {
         tags: (formData.get('tags') as string).split(',').map(t => t.trim()).filter(Boolean),
       });
 
-      // Upload new media
+      // Upload new media with progress
       if (uploadedMedia.length > 0) {
-        for (const media of uploadedMedia) {
-          await api.media.upload(token, media.file, id);
+        for (let i = 0; i < uploadedMedia.length; i++) {
+          const media = uploadedMedia[i];
+          // mark uploading
+          setUploadedMedia((prev) => prev.map((m, idx) => idx === i ? { ...m, status: 'uploading', progress: 0 } : m));
+          await api.media.uploadWithProgress(token, media.file, id, (p) => {
+            setUploadedMedia((prev) => prev.map((m, idx) => idx === i ? { ...m, progress: p } : m));
+          });
+          // mark done
+          setUploadedMedia((prev) => prev.map((m, idx) => idx === i ? { ...m, status: 'done', progress: 100 } : m));
         }
       }
 
@@ -459,10 +466,25 @@ export default function EntryDetailPage() {
                             <span className="text-sm text-gray-600 dark:text-gray-400">{media.name}</span>
                           </div>
                         )}
+                        {/* Upload progress overlay */}
+                        {media.status === 'uploading' && (
+                          <div className="absolute inset-0 bg-black/30 flex items-end rounded">
+                            <div className="w-full p-2">
+                              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded">
+                                <div
+                                  className="h-2 bg-indigo-600 dark:bg-indigo-400 rounded"
+                                  style={{ width: `${media.progress || 0}%` }}
+                                />
+                              </div>
+                              <p className="mt-1 text-xs text-white text-center">Uploading… {media.progress || 0}%</p>
+                            </div>
+                          </div>
+                        )}
                         <button
                           type="button"
                           onClick={() => removeMedia(index)}
                           className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          disabled={media.status === 'uploading'}
                         >
                           ×
                         </button>
