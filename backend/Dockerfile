@@ -22,6 +22,8 @@ RUN npm run build
 
 FROM node:18-alpine AS runner
 WORKDIR /app
+# Install runtime dependencies required by sharp
+RUN apk add --no-cache libvips-dev
 # Copy only runtime artifacts
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /packages/shared /packages/shared
