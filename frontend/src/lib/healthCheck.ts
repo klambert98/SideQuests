@@ -7,7 +7,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const HEALTH_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-let healthCheckInterval: NodeJS.Timer | null = null;
+let healthCheckInterval: NodeJS.Timeout | null = null;
 
 /**
  * Starts periodic health checks
