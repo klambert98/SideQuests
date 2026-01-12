@@ -22,13 +22,16 @@ RUN npm run build
 
 FROM node:18-alpine AS runner
 WORKDIR /app
-# Install runtime dependencies required by sharp
-RUN apk add --no-cache libvips
+# Install build tools needed to rebuild sharp for Alpine
+RUN apk add --no-cache python3 make g++
 # Copy only runtime artifacts
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /packages/shared /packages/shared
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+
+# Rebuild sharp for Alpine runtime
+RUN npm rebuild sharp --platform=linuxmusl --arch=x64
 
 ENV NODE_ENV=production
 EXPOSE 3001
