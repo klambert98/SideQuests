@@ -356,12 +356,13 @@ export default function BucketListPage() {
     }
   };
 
-  const addItem = async (title: string, category: string, subcategory?: string, parentId?: string) => {
+  const addItem = async (title: string, category: string, subcategory?: string, description?: string, parentId?: string) => {
     if (!token) return;
 
     const trimmedTitle = title.trim();
     const normalizedCategory = category.trim();
     const normalizedSubcategory = subcategory?.trim() || undefined;
+    const normalizedDescription = description?.trim() || undefined;
 
     if (!trimmedTitle) {
       addToast('Please provide a title for the item', 'error');
@@ -380,7 +381,7 @@ export default function BucketListPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title: trimmedTitle, category: normalizedCategory, subcategory: normalizedSubcategory, parentId, completed: false }),
+        body: JSON.stringify({ title: trimmedTitle, description: normalizedDescription, category: normalizedCategory, subcategory: normalizedSubcategory, parentId, completed: false }),
       });
 
       if (!response.ok) {

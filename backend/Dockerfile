@@ -10,6 +10,8 @@ RUN npm install && npm run build
 
 # Install backend dependencies
 WORKDIR /app
+# Install build tools required by native modules like sharp
+RUN apk add --no-cache python3 make g++ vips-dev
 COPY backend/package*.json ./
 RUN npm install --production=false
 

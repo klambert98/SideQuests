@@ -5,12 +5,13 @@ import { useEffect, useState } from 'react';
 type BucketListFormProps = {
   categories: string[];
   subcategoriesByCategory: Record<string, string[]>;
-  onAdd: (title: string, category: string, subcategory?: string) => void;
+  onAdd: (title: string, category: string, subcategory?: string, description?: string) => void;
   onCancel: () => void;
 };
 
 export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onCancel }: BucketListFormProps) {
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(categories[0] || '');
   const [subcategory, setSubcategory] = useState('');
   const [useNewCategory, setUseNewCategory] = useState(false);
@@ -31,6 +32,7 @@ export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onC
     e.preventDefault();
 
     const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
     const effectiveCategory = (useNewCategory ? newCategoryText : selectedCategory).trim();
     const effectiveSubcategory = (useNewSubcategory ? newSubcategoryText : subcategory).trim();
 
@@ -48,8 +50,9 @@ export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onC
     
     // Simulate API call
     setTimeout(() => {
-      onAdd(trimmedTitle, effectiveCategory, effectiveSubcategory || undefined);
+      onAdd(trimmedTitle, effectiveCategory, effectiveSubcategory || undefined, trimmedDescription || undefined);
       setTitle('');
+      setDescription('');
       setSelectedCategory(effectiveCategory || categories[0] || '');
       setSubcategory('');
       setUseNewCategory(false);
@@ -78,6 +81,22 @@ export function BucketListForm({ categories, subcategoriesByCategory, onAdd, onC
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Learn to play guitar"
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Description Input */}
+          <div>
+            <label htmlFor="item-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description (optional)
+            </label>
+            <textarea
+              id="item-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add any notes or details about this bucket list item"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              rows={3}
               disabled={isSubmitting}
             />
           </div>

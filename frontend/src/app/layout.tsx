@@ -4,6 +4,7 @@ import { homeMetadata } from '@/lib/metadata';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { ToastContainer } from '@/components/Toast';
+import { HealthCheckProvider } from '@/components/HealthCheckProvider';
 
 export const metadata: Metadata = {
   ...homeMetadata,
@@ -36,7 +37,9 @@ export default function RootLayout({
       <body className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         <ToastProvider>
           <ErrorBoundary>
-            {children}
+            <HealthCheckProvider>
+              {children}
+            </HealthCheckProvider>
           </ErrorBoundary>
           <ToastContainer />
         </ToastProvider>

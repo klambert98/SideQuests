@@ -12,6 +12,7 @@ import { entryRoutes } from './routes/entries';
 import { mediaRoutes } from './routes/media';
 import { embedRoutes } from './routes/embeds';
 import { bucketListRoutes } from './routes/bucketList';
+import { healthRoutes } from './routes/health';
 import { logger } from './services/LoggerService';
 import { generalLimiter } from './middleware/rateLimiter';
 import { validateEnvironmentVariables } from './utils/envValidation';
@@ -115,6 +116,9 @@ app.use(
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// Health check routes
+app.use('/health', healthRoutes);
 
 // API Routes
 app.use('/api/auth', authRoutes);
